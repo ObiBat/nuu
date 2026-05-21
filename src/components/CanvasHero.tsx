@@ -29,6 +29,14 @@ export function CanvasHero() {
   useEffect(() => {
     if (phase !== "intro") return;
     const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
+      )
+        return;
       if (
         e.key === "Escape" ||
         e.key === "Tab" ||
