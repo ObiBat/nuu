@@ -1,4 +1,5 @@
 import type { CharacterPalette } from "@/lib/character";
+import type { PresenceIdentity } from "./presence";
 
 export type DialoguePayload = {
   type: "poi" | "npc";
@@ -6,6 +7,10 @@ export type DialoguePayload = {
 };
 
 class GameEventBus extends EventTarget {
+  // Last identity emitted, so the scene can read current state on create()
+  // even if the bridge dispatched before the scene attached its listener.
+  lastIdentity: PresenceIdentity | null = null;
+
   openDialogue(detail: DialoguePayload) {
     this.dispatchEvent(new CustomEvent("dialogue:open", { detail }));
   }
@@ -23,6 +28,18 @@ class GameEventBus extends EventTarget {
   }
   setImmersed(immersed: boolean) {
     this.dispatchEvent(new CustomEvent("ui:immersed", { detail: immersed }));
+  }
+  presenceIdentity(identity: PresenceIdentity | null) {
+    this.lastIdentity = identity;
+    this.dispatchEvent(
+      new CustomEvent("presence:identity", { detail: identity }),
+    );
+  }
+  sendChat(text: string) {
+    this.dispatchEvent(new CustomEvent("chat:send", { detail: text }));
+  }
+  setTyping(typing: boolean) {
+    this.dispatchEvent(new CustomEvent("chat:typing", { detail: typing }));
   }
 }
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import GameCanvas from "./GameCanvas";
+import { PresenceLayer } from "./PresenceLayer";
 import { gameEvents } from "@/game/events";
 
 type Phase = "intro" | "playing";
@@ -65,6 +66,8 @@ export function CanvasHero() {
 
       {phase === "intro" && <IntroOverlay onEnter={enter} />}
       {phase === "playing" && <PlayingHud onReturn={returnToIntro} />}
+
+      <PresenceLayer playing={phase === "playing"} />
     </section>
   );
 }

@@ -28,6 +28,12 @@ import {
   paletteToLegend,
   type CharacterPalette,
 } from "@/lib/character";
+import {
+  KhuralPresence,
+  type Facing,
+  type PresenceIdentity,
+  type RemoteMember,
+} from "./presence";
 
 const USER_IDLE_KEY = "char-user-idle";
 const USER_WALK_KEY = "char-user-walk";
@@ -217,6 +223,24 @@ type AmbientNpcState = AmbientNpc & {
   lineIndex: number;
 };
 
+type RemotePlayerState = {
+  id: string;
+  sprite: Phaser.GameObjects.Image;
+  nameTag: Phaser.GameObjects.Container;
+  idleKey: string;
+  walkKey: string;
+  x: number;
+  baseY: number;
+  targetX: number;
+  targetY: number;
+  facing: Facing;
+  walkFrame: number;
+  walkTimer: number;
+  walkPhase: number;
+  bubble: Phaser.GameObjects.Container | null;
+  bubbleVisibleFor: number;
+};
+
 export class KhuralScene extends Phaser.Scene {
   private player!: Phaser.GameObjects.Image;
   private playerBaseY = 0;
@@ -236,6 +260,17 @@ export class KhuralScene extends Phaser.Scene {
   private walkPhase = 0;
   private playerWalkFrame = 0;
   private playerWalkTimer = 0;
+
+  private presence: KhuralPresence | null = null;
+  private identity: PresenceIdentity | null = null;
+  private remote = new Map<string, RemotePlayerState>();
+  private moveSendTimer = 0;
+  private posSyncTimer = 0;
+  private lastSentFacing: Facing = 1;
+  private ambientFaded = false;
+  private typingBlocked = false;
+  private playerBubble: Phaser.GameObjects.Container | null = null;
+  private playerBubbleFor = 0;
 
   constructor() {
     super({ key: "KhuralScene" });
@@ -263,6 +298,9 @@ export class KhuralScene extends Phaser.Scene {
     gameEvents.addEventListener("world:pause", this.onWorldPause);
     gameEvents.addEventListener("world:resume", this.onWorldResume);
     gameEvents.addEventListener("character:update", this.onCharacterUpdate);
+    gameEvents.addEventListener("presence:identity", this.onPresenceIdentity);
+    gameEvents.addEventListener("chat:send", this.onChatSend);
+    gameEvents.addEventListener("chat:typing", this.onTyping);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       gameEvents.removeEventListener("dialogue:close", this.onDialogueClose);
       gameEvents.removeEventListener("world:pause", this.onWorldPause);
@@ -271,8 +309,19 @@ export class KhuralScene extends Phaser.Scene {
         "character:update",
         this.onCharacterUpdate,
       );
+      gameEvents.removeEventListener(
+        "presence:identity",
+        this.onPresenceIdentity,
+      );
+      gameEvents.removeEventListener("chat:send", this.onChatSend);
+      gameEvents.removeEventListener("chat:typing", this.onTyping);
+      this.presence?.leave();
+      this.presence = null;
       this.scale.off("resize", this.fitCamera, this);
     });
+
+    // Connect now if identity already resolved before the scene attached.
+    if (gameEvents.lastIdentity) this.connectPresence(gameEvents.lastIdentity);
   }
 
   private onDialogueClose = () => {
@@ -311,6 +360,291 @@ export class KhuralScene extends Phaser.Scene {
       buildCharacterRows(true, palette.body),
       legend,
     );
+  }
+
+  // ---- Realtime presence ----------------------------------------------
+
+  private onPresenceIdentity = (e: Event) => {
+    const id = (e as CustomEvent<PresenceIdentity | null>).detail;
+    this.connectPresence(id);
+  };
+
+  private connectPresence(id: PresenceIdentity | null) {
+    this.presence?.leave();
+    this.presence = null;
+    this.clearRemotePlayers();
+    this.identity = id;
+    if (!id) {
+      this.updateAmbientFade();
+      return;
+    }
+    this.presence = new KhuralPresence(
+      id,
+      { x: this.player?.x ?? SPAWN.x, y: this.playerBaseY || SPAWN.y },
+      {
+        onRoster: this.onRoster,
+        onMove: this.onRemoteMove,
+        onChat: this.onRemoteChat,
+      },
+    );
+    this.presence.join();
+  }
+
+  private onRoster = (members: RemoteMember[]) => {
+    const seen = new Set<string>();
+    members.forEach((m) => {
+      seen.add(m.userId);
+      if (!this.remote.has(m.userId)) this.addRemote(m);
+    });
+    for (const id of [...this.remote.keys()]) {
+      if (!seen.has(id)) this.removeRemote(id);
+    }
+    this.updateAmbientFade();
+  };
+
+  private addRemote(m: RemoteMember) {
+    const idleKey = `remote-${m.userId}-idle`;
+    const walkKey = `remote-${m.userId}-walk`;
+    const legend = paletteToLegend(m.palette);
+    createPixelTexture(
+      this,
+      idleKey,
+      buildCharacterRows(false, m.palette.body),
+      legend,
+    );
+    createPixelTexture(
+      this,
+      walkKey,
+      buildCharacterRows(true, m.palette.body),
+      legend,
+    );
+
+    const sprite = this.add
+      .image(m.x, m.y, idleKey)
+      .setScale(SPRITE_SCALE)
+      .setOrigin(0.5, 0.85)
+      .setFlipX(m.facing < 0)
+      .setDepth(m.y);
+
+    const nameTag = this.buildNameTag(
+      m.displayName,
+      m.memberNumber,
+    );
+    nameTag.setPosition(m.x, m.y - 52).setDepth(9000);
+
+    this.remote.set(m.userId, {
+      id: m.userId,
+      sprite,
+      nameTag,
+      idleKey,
+      walkKey,
+      x: m.x,
+      baseY: m.y,
+      targetX: m.x,
+      targetY: m.y,
+      facing: m.facing,
+      walkFrame: 0,
+      walkTimer: 0,
+      walkPhase: 0,
+      bubble: null,
+      bubbleVisibleFor: 0,
+    });
+  }
+
+  private removeRemote(id: string) {
+    const st = this.remote.get(id);
+    if (!st) return;
+    st.bubble?.destroy();
+    st.nameTag.destroy();
+    st.sprite.destroy();
+    if (this.textures.exists(st.idleKey)) this.textures.remove(st.idleKey);
+    if (this.textures.exists(st.walkKey)) this.textures.remove(st.walkKey);
+    this.remote.delete(id);
+  }
+
+  private clearRemotePlayers() {
+    for (const id of [...this.remote.keys()]) this.removeRemote(id);
+  }
+
+  private onRemoteMove = (
+    userId: string,
+    x: number,
+    y: number,
+    facing: Facing,
+  ) => {
+    const st = this.remote.get(userId);
+    if (!st) return;
+    st.targetX = x;
+    st.targetY = y;
+    st.facing = facing;
+  };
+
+  private onRemoteChat = (userId: string, text: string) => {
+    const st = this.remote.get(userId);
+    if (!st) return;
+    if (st.bubble) {
+      st.bubble.destroy();
+      st.bubble = null;
+    }
+    st.bubble = this.buildSpeechBubble(text, st.x, st.baseY - 44);
+    st.bubbleVisibleFor = 5000;
+  };
+
+  private onChatSend = (e: Event) => {
+    const text = (e as CustomEvent<string>).detail?.trim();
+    if (!text || !this.presence) return;
+    this.presence.sendChat(text);
+    if (this.playerBubble) {
+      this.playerBubble.destroy();
+      this.playerBubble = null;
+    }
+    this.playerBubble = this.buildSpeechBubble(
+      text,
+      this.player.x,
+      this.playerBaseY - 44,
+    );
+    this.playerBubbleFor = 5000;
+  };
+
+  private onTyping = (e: Event) => {
+    this.typingBlocked = (e as CustomEvent<boolean>).detail;
+  };
+
+  private updateAmbientFade() {
+    const shouldFade = this.remote.size > 0;
+    if (shouldFade === this.ambientFaded) return;
+    this.ambientFaded = shouldFade;
+    this.ambient.forEach((npc) => {
+      this.tweens.add({
+        targets: npc.sprite,
+        alpha: shouldFade ? 0.22 : 0.88,
+        duration: 600,
+        ease: "Sine.InOut",
+      });
+      if (shouldFade) this.hideBubble(npc);
+    });
+  }
+
+  private buildNameTag(
+    name: string,
+    memberNumber: number,
+  ): Phaser.GameObjects.Container {
+    const label = `${name}  #${String(memberNumber).padStart(4, "0")}`;
+    const text = this.add
+      .text(0, 0, label, {
+        fontFamily: "monospace",
+        fontSize: "8px",
+        color: "#f4e8c8",
+        fontStyle: "bold",
+      })
+      .setOrigin(0.5)
+      .setResolution(2);
+    const w = text.width + 10;
+    const h = 13;
+    const bg = this.add.graphics();
+    bg.fillStyle(0x2a1810, 0.92);
+    bg.lineStyle(1, 0xf4e8c8, 0.6);
+    bg.fillRoundedRect(-w / 2, -h / 2, w, h, 3);
+    bg.strokeRoundedRect(-w / 2, -h / 2, w, h, 3);
+    return this.add.container(0, 0, [bg, text]);
+  }
+
+  private buildSpeechBubble(
+    text: string,
+    x: number,
+    y: number,
+  ): Phaser.GameObjects.Container {
+    const label = this.add
+      .text(0, 0, text, {
+        fontFamily: "monospace",
+        fontSize: "9px",
+        color: "#2a1810",
+        align: "center",
+        wordWrap: { width: 150 },
+      })
+      .setOrigin(0.5)
+      .setResolution(2);
+    const w = label.width + 14;
+    const h = label.height + 10;
+    const bg = this.add.graphics();
+    bg.fillStyle(0xffffff, 0.96);
+    bg.lineStyle(1, 0x2a1810, 0.8);
+    bg.fillRoundedRect(-w / 2, -h / 2, w, h, 5);
+    bg.strokeRoundedRect(-w / 2, -h / 2, w, h, 5);
+    bg.fillStyle(0xffffff, 0.96);
+    bg.fillTriangle(-4, h / 2 - 1, 4, h / 2 - 1, 0, h / 2 + 5);
+    const container = this.add
+      .container(x, y, [bg, label])
+      .setDepth(9500)
+      .setAlpha(0);
+    this.tweens.add({ targets: container, alpha: 1, duration: 220 });
+    return container;
+  }
+
+  private updateRemotes(delta: number) {
+    this.remote.forEach((st) => {
+      const dx = st.targetX - st.x;
+      const dy = st.targetY - st.baseY;
+      const dist = Math.hypot(dx, dy);
+      const moving = dist > 1.2;
+      st.x += dx * 0.2;
+      st.baseY += dy * 0.2;
+
+      if (moving) {
+        st.walkPhase += delta * 0.018;
+        st.walkTimer += delta;
+        if (st.walkTimer > 180) {
+          st.walkTimer = 0;
+          st.walkFrame = (st.walkFrame + 1) % 2;
+          st.sprite.setTexture(st.walkFrame === 0 ? st.idleKey : st.walkKey);
+        }
+      } else {
+        st.walkPhase += delta * 0.004;
+        if (st.walkFrame !== 0) {
+          st.walkFrame = 0;
+          st.sprite.setTexture(st.idleKey);
+        }
+      }
+
+      st.sprite.setFlipX(st.facing < 0);
+      const bob = Math.sin(st.walkPhase) * (moving ? 1.5 : 0.5);
+      st.sprite.x = st.x;
+      st.sprite.y = st.baseY + bob;
+      st.sprite.setDepth(st.baseY);
+      st.nameTag.setPosition(st.x, st.baseY - 52);
+
+      if (st.bubble) {
+        st.bubble.x = st.x;
+        st.bubble.y = st.baseY - 44;
+        st.bubbleVisibleFor -= delta;
+        if (st.bubbleVisibleFor <= 0) {
+          const b = st.bubble;
+          st.bubble = null;
+          this.tweens.add({
+            targets: b,
+            alpha: 0,
+            duration: 200,
+            onComplete: () => b.destroy(),
+          });
+        }
+      }
+    });
+
+    if (this.playerBubble) {
+      this.playerBubble.x = this.player.x;
+      this.playerBubble.y = this.playerBaseY - 44;
+      this.playerBubbleFor -= delta;
+      if (this.playerBubbleFor <= 0) {
+        const b = this.playerBubble;
+        this.playerBubble = null;
+        this.tweens.add({
+          targets: b,
+          alpha: 0,
+          duration: 200,
+          onComplete: () => b.destroy(),
+        });
+      }
+    }
   }
 
   private fitCamera = (size: Phaser.Structs.Size) => {
@@ -669,6 +1003,8 @@ export class KhuralScene extends Phaser.Scene {
   }
 
   update(time: number, delta: number) {
+    this.updateRemotes(delta);
+
     if (this.dialogueOpen || this.worldPaused) {
       this.interactables.forEach((it) => it.prompt.setVisible(false));
       if (this.playerIndicator) {
@@ -687,10 +1023,12 @@ export class KhuralScene extends Phaser.Scene {
     const step = (PLAYER_SPEED * delta) / 1000;
     let dx = 0;
     let dy = 0;
-    if (this.cursors.left?.isDown || this.wasd.A.isDown) dx -= 1;
-    if (this.cursors.right?.isDown || this.wasd.D.isDown) dx += 1;
-    if (this.cursors.up?.isDown || this.wasd.W.isDown) dy -= 1;
-    if (this.cursors.down?.isDown || this.wasd.S.isDown) dy += 1;
+    if (!this.typingBlocked) {
+      if (this.cursors.left?.isDown || this.wasd.A.isDown) dx -= 1;
+      if (this.cursors.right?.isDown || this.wasd.D.isDown) dx += 1;
+      if (this.cursors.up?.isDown || this.wasd.W.isDown) dy -= 1;
+      if (this.cursors.down?.isDown || this.wasd.S.isDown) dy += 1;
+    }
 
     const moving = dx !== 0 || dy !== 0;
     if (moving) {
@@ -773,12 +1111,34 @@ export class KhuralScene extends Phaser.Scene {
       const target = nearest as Interactable;
       target.prompt.setVisible(true);
       this.currentTarget = target.id;
-      if (Phaser.Input.Keyboard.JustDown(this.interactKey)) {
+      if (
+        !this.typingBlocked &&
+        Phaser.Input.Keyboard.JustDown(this.interactKey)
+      ) {
         this.dialogueOpen = true;
         gameEvents.openDialogue({ type: target.type, id: target.id });
       }
     } else {
       this.currentTarget = null;
+    }
+
+    if (this.presence) {
+      const facing: Facing = this.player.flipX ? -1 : 1;
+      this.moveSendTimer += delta;
+      if (
+        this.moveSendTimer > 100 &&
+        (moving || facing !== this.lastSentFacing)
+      ) {
+        this.moveSendTimer = 0;
+        this.lastSentFacing = facing;
+        this.presence.sendMove(this.player.x, this.playerBaseY, facing);
+      }
+      // Refresh the presence snapshot so late joiners spawn us in place.
+      this.posSyncTimer += delta;
+      if (this.posSyncTimer > 4000) {
+        this.posSyncTimer = 0;
+        this.presence.syncPosition();
+      }
     }
   }
 }
