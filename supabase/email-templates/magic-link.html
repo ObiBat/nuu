@@ -1,0 +1,93 @@
+<!--
+  Magic-link email template for Nuu.
+  Paste into Supabase Dashboard → Authentication → Email Templates → Magic Link.
+
+  Variables Supabase substitutes:
+    {{ .ConfirmationURL }} → the magic-link URL
+    {{ .Email }}            → recipient's email
+    {{ .Token }}            → 6-digit OTP (optional fallback)
+    {{ .SiteURL }}          → your configured Site URL
+
+  Recommended Subject line:
+    Your move — sign in to nuu
+-->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="color-scheme" content="light only" />
+    <meta name="supported-color-schemes" content="light only" />
+    <title>Sign in to nuu</title>
+  </head>
+  <body style="margin:0;padding:0;background:#f4e8c8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1a1a1a;-webkit-font-smoothing:antialiased;">
+    <span style="display:none!important;visibility:hidden;mso-hide:all;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">
+      Your one-tap sign-in link for nuu — нүү, your move.
+    </span>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4e8c8;">
+      <tr>
+        <td align="center" style="padding:48px 24px 16px 24px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;background:#ffffff;border:1px solid #e5e0d2;border-radius:16px;overflow:hidden;">
+
+            <tr>
+              <td style="padding:36px 36px 8px 36px;">
+                <div style="font-family:'Courier New',Courier,monospace;font-size:10px;letter-spacing:0.3em;text-transform:uppercase;color:#9a9a9a;margin-bottom:14px;">
+                  nuu · your move
+                </div>
+                <h1 style="margin:0;font-size:28px;line-height:1.15;letter-spacing:-0.01em;font-weight:600;color:#1a1a1a;">
+                  Sign in to nuu
+                </h1>
+                <p style="margin:14px 0 0 0;font-size:15px;line-height:1.55;color:#4a4a4a;">
+                  Tap the button below within the next hour to finish signing in. No password required.
+                </p>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:28px 36px 8px 36px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td align="center" bgcolor="#1a1a1a" style="border-radius:9999px;">
+                      <a href="{{ .ConfirmationURL }}"
+                         style="display:inline-block;padding:14px 28px;font-size:15px;font-weight:500;color:#ffffff;text-decoration:none;border-radius:9999px;">
+                        Open Nuu →
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:24px 36px 0 36px;">
+                <p style="margin:0;font-size:12px;line-height:1.6;color:#7a7a7a;">
+                  Or paste this URL into your browser:
+                </p>
+                <p style="margin:6px 0 0 0;font-size:12px;line-height:1.5;color:#1a1a1a;word-break:break-all;">
+                  <a href="{{ .ConfirmationURL }}" style="color:#1a1a1a;text-decoration:underline;">{{ .ConfirmationURL }}</a>
+                </p>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:28px 36px 36px 36px;">
+                <div style="border-top:1px solid #e5e0d2;padding-top:18px;font-family:'Courier New',Courier,monospace;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#9a9a9a;line-height:1.7;">
+                  Didn't request this? Ignore the email — no account changes will be made.
+                </div>
+              </td>
+            </tr>
+          </table>
+
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;">
+            <tr>
+              <td align="center" style="padding:18px 12px 36px 12px;font-family:'Courier New',Courier,monospace;font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:#9a9a9a;">
+                nuu · нүү · sydney · ulaanbaatar
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
