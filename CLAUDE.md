@@ -12,19 +12,19 @@ Founder: **Obi Batbileg** ([obicreative.dev](https://obicreative.dev) · [craeft
 
 ---
 
-## Current state (last session: 2026-05-21)
+## Current state (last verified: 2026-05-22)
 
 | Phase | Status |
 |---|---|
 | **v0.1 — World** | ✅ shipped |
 | **v0.2 — Public** | ✅ deployed to Vercel + GitHub + CI/CD |
-| **v0.3 — Identity** | 🔨 scaffold done, runtime wiring in progress |
+| **v0.3 — Identity** | ✅ shipped (magic-link auth, profiles, /members, customize→DB) — 0 real signups yet |
 | v0.4–v0.9 | future |
 
-Live: **https://nuu-gules.vercel.app** (and **https://nuu.today** once Spaceship A record is fixed).
+Live: **https://nuu.today** (DNS resolved, A=76.76.21.21, HTTP 200) and **https://nuu-gules.vercel.app**.
 Repo: **https://github.com/ObiBat/nuu** (public, MIT).
-Vercel project: `obis-projects-ce997674/nuu`.
-Supabase project ref: `lbdwwhhrvefcqeulbbla` (Sydney region).
+Vercel project: `obis-projects-ce997674/nuu` — latest production deployment READY (commit `9f7f610`).
+Supabase project ref: `lbdwwhhrvefcqeulbbla` (Sydney). Migrations `0001_init` + `0002_harden_functions` applied. `public.profiles` live, RLS on, 0 rows.
 
 ---
 
@@ -156,22 +156,25 @@ nuu/
 
 ---
 
-## Outstanding TODOs to resume v0.3 cleanly
+## v0.3 — DONE (verified 2026-05-22)
 
-### Must-do externally (you)
-1. **DNS A record at Spaceship**: change `216.150.1.1` → `76.76.21.21` (Vercel apex IP). CNAME is already correct.
-2. **Run migration** on Supabase remote: paste `supabase/migrations/0001_init.sql` into the dashboard SQL editor at https://supabase.com/dashboard/project/lbdwwhhrvefcqeulbbla/sql/new
-3. **Create Discord OAuth app** at https://discord.com/developers/applications, enable Discord provider in Supabase Auth → Providers, set redirect URLs (`https://nuu-gules.vercel.app/auth/callback` + `http://localhost:3000/auth/callback`).
-4. **Restart Claude Code + `claude /mcp`** to authenticate the Supabase MCP. Once tools surface, migration + queries can run via MCP directly.
+All external blockers cleared and code wired:
+- ✅ DNS resolved (`nuu.today` A=76.76.21.21, both URLs HTTP 200)
+- ✅ Migrations applied (`0001_init` + `0002_harden_functions`), `profiles` table live with RLS
+- ✅ Supabase MCP authed (queries/migrations run via MCP)
+- ✅ `AuthMenu.tsx` — email magic-link sign-in (`signInWithOtp`) + signed-in dropdown
+- ✅ `src/lib/supabase/profile.ts` — `fetchMyProfile`, `saveMyProfile`, `characterFromProfile`, `shouldMigrateLocal`, `slugify`
+- ✅ `src/lib/supabase/use-user.ts` — `useSupabaseUser()` hook
+- ✅ `CustomizePanel` (in `PanelHost.tsx`) — authed Save writes to DB, local→profile migration on first login
+- ✅ `/members` index — fetches real profiles, grid with sprite portraits, empty-state
+- ✅ `/members/[slug]` — individual profile pages (slug or member_number lookup)
 
-### Code wire-up (in progress, mid-session by you)
-- `AuthMenu.tsx` — sign-in / sign-out dropdown (referenced by `Nav.tsx` import)
-- `src/lib/supabase/profile.ts` — `fetchMyProfile`, `saveMyProfile`, `characterFromProfile`, `shouldMigrateLocal`
-- `src/lib/supabase/use-user.ts` — `useSupabaseUser()` hook
-- `CustomizePanel` — when authed, Save writes to profile; otherwise localStorage. First login: migrate local → profile if empty.
-- `/members` (index) — fetch real profiles from DB, render grid
-- `/members/[slug]` — individual profile page with sprite, bio, links, last-seen
-- Replace hardcoded `#0001` badge number with real `member_number` from profile
+**Decision change:** Discord OAuth was dropped in favor of **email magic-link** (simpler, no third-party app to maintain). Discord remains the *destination* (Portal POI), not the auth provider.
+
+### v0.3 cleanup remaining (small)
+1. **Hardcoded badge `#0001`** in `HeroLanyard.tsx:284` — still static; swap for real `member_number` when the badge belongs to a signed-in member (currently the badge is a marketing/hero element, so may stay `#0001` intentionally — confirm intent).
+2. **Security advisor WARN** (`mcp__supabase__get_advisors`): `public.rls_auto_enable()` is a `SECURITY DEFINER` function executable by `anon`/`authenticated` via RPC. Revoke EXECUTE or switch to `SECURITY INVOKER` in a `0003` migration.
+3. **Branded magic-link email** — HTML template at `supabase/email-templates/magic-link.html` must be pasted into Supabase Dashboard → Auth → Email Templates → Magic Link (manual, can't be done via MCP).
 
 ### Placeholders to swap before public launch
 - `https://discord.gg/nuu` → real invite (in `HeroLanyard.tsx` + `content/dialogue.json`)
@@ -226,7 +229,7 @@ his profile shows.
 - **v0.8** — Achievements, inventory, playable shatar mini-game at Arcade POI
 - **v0.9** — Ecosystem (MAS-NSW, Bayan Mongol, sponsor slots)
 
-Critical path: v0.3 (identity) → v0.4 (presence) → the rest is iteration.
+Critical path: ~~v0.3 (identity)~~ ✅ → **v0.4 (presence) — NEXT** → the rest is iteration.
 
 ---
 
