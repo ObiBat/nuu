@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { navLinks } from "@/lib/content";
 import { gameEvents } from "@/game/events";
+import { AuthMenu } from "./AuthMenu";
 
 export function Nav() {
   const pathname = usePathname();
@@ -95,16 +96,7 @@ export function Nav() {
             <span>⌘</span>
             <span>K</span>
           </kbd>
-          <Link
-            href="/#badge"
-            className={`inline-flex items-center h-8 px-4 text-sm font-medium rounded-full transition-colors ${
-              overDark
-                ? "bg-background text-foreground hover:bg-background/90"
-                : "bg-foreground text-background hover:bg-accent-subtle"
-            }`}
-          >
-            Join
-          </Link>
+          <AuthMenu theme={overDark ? "dark" : "light"} />
         </div>
       </div>
     </nav>

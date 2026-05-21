@@ -22,6 +22,14 @@ import {
   type CharacterPalette,
 } from "@/lib/character";
 import { gameEvents } from "@/game/events";
+import { useSupabaseUser } from "@/lib/supabase/use-user";
+import {
+  characterFromProfile,
+  fetchMyProfile,
+  saveMyProfile,
+  shouldMigrateLocal,
+  type ProfileRow,
+} from "@/lib/supabase/profile";
 
 type PanelKey =
   | "about"
@@ -303,15 +311,66 @@ function BadgePanel() {
 }
 
 function CustomizePanel() {
+  const { user, loading: authLoading } = useSupabaseUser();
   const [palette, setPalette] = useState<CharacterPalette>(DEFAULT_CHARACTER);
   const [savedPalette, setSavedPalette] =
     useState<CharacterPalette>(DEFAULT_CHARACTER);
+  const [profile, setProfile] = useState<ProfileRow | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
-    const loaded = loadCharacter();
-    setPalette(loaded);
-    setSavedPalette(loaded);
-  }, []);
+    if (authLoading) return;
+    let cancelled = false;
+
+    (async () => {
+      const local = loadCharacter();
+
+      if (!user) {
+        if (cancelled) return;
+        setPalette(local);
+        setSavedPalette(local);
+        setProfile(null);
+        return;
+      }
+
+      const prof = await fetchMyProfile();
+      if (cancelled) return;
+
+      if (prof && shouldMigrateLocal(prof, local)) {
+        const merged: CharacterPalette = {
+          ...local,
+          displayName: local.displayName || prof.display_name,
+          role: local.role || prof.role,
+          location: local.location || prof.location,
+        };
+        const result = await saveMyProfile(merged);
+        if (cancelled) return;
+        if (result.ok) {
+          const refreshed = await fetchMyProfile();
+          if (cancelled) return;
+          const fromDB = characterFromProfile(refreshed);
+          setProfile(refreshed);
+          setPalette(fromDB);
+          setSavedPalette(fromDB);
+          saveCharacter(fromDB);
+          gameEvents.characterUpdated(fromDB);
+          return;
+        }
+      }
+
+      const fromDB = characterFromProfile(prof);
+      setProfile(prof);
+      setPalette(fromDB);
+      setSavedPalette(fromDB);
+      saveCharacter(fromDB);
+      gameEvents.characterUpdated(fromDB);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user, authLoading]);
 
   const dirty = useMemo(
     () => JSON.stringify(palette) !== JSON.stringify(savedPalette),
@@ -321,10 +380,19 @@ function CustomizePanel() {
   const update = (key: keyof CharacterPalette, value: string) =>
     setPalette((p) => ({ ...p, [key]: value }));
 
-  const save = () => {
+  const save = async () => {
     saveCharacter(palette);
     gameEvents.characterUpdated(palette);
     setSavedPalette(palette);
+
+    if (!user) return;
+    setSaving(true);
+    setSaveError(null);
+    const result = await saveMyProfile(palette);
+    setSaving(false);
+    if (!result.ok) {
+      setSaveError(result.reason);
+    }
   };
 
   const reset = () => setPalette(DEFAULT_CHARACTER);
@@ -455,10 +523,10 @@ function CustomizePanel() {
         <button
           type="button"
           onClick={save}
-          disabled={!dirty}
+          disabled={!dirty || saving}
           className="inline-flex items-center h-10 px-5 text-sm font-medium bg-foreground text-background rounded-full disabled:opacity-40 disabled:cursor-not-allowed hover:bg-accent-subtle transition-colors"
         >
-          {dirty ? "Save changes" : "Saved"}
+          {saving ? "Saving…" : dirty ? "Save changes" : "Saved"}
         </button>
         <button
           type="button"
@@ -476,8 +544,16 @@ function CustomizePanel() {
         </button>
       </div>
 
+      {saveError && (
+        <p className="text-xs text-[#c5302c] text-center">{saveError}</p>
+      )}
+
       <p className="font-mono text-[10px] uppercase tracking-widest text-muted text-center">
-        stored locally · syncs to your profile when Discord login lands
+        {user
+          ? profile
+            ? `member · #${String(profile.member_number).padStart(4, "0")}`
+            : "synced to your profile"
+          : "stored locally · sign in to claim your member number"}
       </p>
     </div>
   );

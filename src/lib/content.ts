@@ -14,7 +14,7 @@ export const pois: Poi[] = [
 
 export const navLinks = [
   { label: "About", href: "/#about" },
-  { label: "Members", href: "/#members" },
+  { label: "Members", href: "/members" },
   { label: "Events", href: "/#events" },
   { label: "Library", href: "/#library" },
   { label: "You", href: "/#customize" },
