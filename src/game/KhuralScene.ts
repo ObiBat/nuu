@@ -504,15 +504,55 @@ export class KhuralScene extends Phaser.Scene {
           ease: "Sine.InOut",
         });
       }
+      if (item.id === "obi") {
+        const chip = this.buildFounderChip();
+        chip.setPosition(item.x, item.y - 48);
+        chip.setDepth(8500);
+        this.tweens.add({
+          targets: chip,
+          y: item.y - 51,
+          duration: 1100,
+          yoyo: true,
+          repeat: -1,
+          ease: "Sine.InOut",
+        });
+      }
     });
+  }
+
+  private buildFounderChip(): Phaser.GameObjects.Container {
+    const w = 44;
+    const h = 13;
+    const bg = this.add.graphics();
+    bg.fillStyle(0x2a1810, 1);
+    bg.lineStyle(1, 0xe8b22e, 1);
+    bg.fillRoundedRect(-w / 2, -h / 2, w, h, 3);
+    bg.strokeRoundedRect(-w / 2, -h / 2, w, h, 3);
+    bg.fillStyle(0x2a1810, 1);
+    bg.fillTriangle(-3, h / 2 - 1, 3, h / 2 - 1, 0, h / 2 + 4);
+    bg.lineStyle(1, 0xe8b22e, 1);
+    bg.lineBetween(-3, h / 2 - 1, 0, h / 2 + 4);
+    bg.lineBetween(3, h / 2 - 1, 0, h / 2 + 4);
+
+    const text = this.add
+      .text(0, -1, "★ FOUNDER", {
+        fontFamily: "monospace",
+        fontSize: "8px",
+        color: "#e8b22e",
+        fontStyle: "bold",
+      })
+      .setOrigin(0.5);
+
+    return this.add.container(0, 0, [bg, text]);
   }
 
   private spawnAmbient() {
     AMBIENT_NPCS.forEach((npc) => {
       const sprite = this.add
         .image(npc.x, npc.y, npc.spriteKey)
-        .setScale(SPRITE_SCALE)
+        .setScale(SPRITE_SCALE * 0.85)
         .setOrigin(0.5, 0.85)
+        .setAlpha(0.88)
         .setDepth(npc.y);
 
       this.tweens.add({
@@ -584,35 +624,31 @@ export class KhuralScene extends Phaser.Scene {
       npc.bubble = null;
     }
     const line = npc.lines[npc.lineIndex];
-    const padding = 6;
     const text = this.add
       .text(0, 0, line, {
         fontFamily: "monospace",
-        fontSize: "9px",
-        color: "#2a1810",
+        fontSize: "8px",
+        color: "#5a4030",
+        fontStyle: "italic",
       })
       .setOrigin(0.5, 0.5);
-    const w = text.width + padding * 2;
-    const h = text.height + padding * 2;
+    const w = text.width + 12;
+    const h = text.height + 7;
     const bg = this.add.graphics();
-    bg.fillStyle(0xf4e8c8, 1);
-    bg.lineStyle(1, 0x2a1810, 1);
-    bg.fillRoundedRect(-w / 2, -h / 2, w, h, 4);
-    bg.strokeRoundedRect(-w / 2, -h / 2, w, h, 4);
-    bg.fillTriangle(-4, h / 2 - 1, 4, h / 2 - 1, 0, h / 2 + 6);
-    bg.lineStyle(1, 0x2a1810, 1);
-    bg.lineBetween(-4, h / 2 - 1, 0, h / 2 + 6);
-    bg.lineBetween(4, h / 2 - 1, 0, h / 2 + 6);
+    bg.fillStyle(0xf4e8c8, 0.78);
+    bg.lineStyle(1, 0x8a7050, 0.45);
+    bg.fillRoundedRect(-w / 2, -h / 2, w, h, 5);
+    bg.strokeRoundedRect(-w / 2, -h / 2, w, h, 5);
 
     const container = this.add
-      .container(npc.x, npc.baseY - 42, [bg, text])
+      .container(npc.x, npc.baseY - 38, [bg, text])
       .setDepth(3000)
       .setAlpha(0);
 
     this.tweens.add({
       targets: container,
       alpha: 1,
-      duration: 220,
+      duration: 260,
       ease: "Sine.Out",
     });
     npc.bubble = container;
