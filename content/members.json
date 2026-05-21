@@ -1,0 +1,31 @@
+{
+  "members": [
+    {
+      "id": "obi",
+      "ghost": false,
+      "displayName": "Obi Batbileg",
+      "role": "Design Technologist · Founder",
+      "bio": "Bridging design and development. Building with Three.js, React, and AI orchestration. Runs Craefto from Sydney.",
+      "spriteLayers": { "base": 0, "hair": 3, "outfit": 2, "accessory": 1 },
+      "spawnPoint": { "map": "khural", "x": 12, "y": 8 },
+      "dialogue": [
+        "Sain bain uu — welcome to Nuu.",
+        "Design Technologist. I build with Three.js, React, and a bit of AI.",
+        "Ask me about design + code, or about Craefto."
+      ],
+      "links": {
+        "site": "https://obicreative.dev",
+        "linkedin": "https://linkedin.com/in/obibatbileg",
+        "email": "obi@craefto.com"
+      },
+      "currentProject": "Craefto · Nuu"
+    },
+    { "id": "ghost-1", "ghost": true, "displayName": "Coming soon", "role": "" },
+    { "id": "ghost-2", "ghost": true, "displayName": "Coming soon", "role": "" },
+    { "id": "ghost-3", "ghost": true, "displayName": "Coming soon", "role": "" },
+    { "id": "ghost-4", "ghost": true, "displayName": "Coming soon", "role": "" },
+    { "id": "ghost-5", "ghost": true, "displayName": "Coming soon", "role": "" },
+    { "id": "ghost-6", "ghost": true, "displayName": "Coming soon", "role": "" },
+    { "id": "ghost-7", "ghost": true, "displayName": "Coming soon", "role": "" }
+  ]
+}

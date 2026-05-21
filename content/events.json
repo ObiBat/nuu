@@ -1,0 +1,28 @@
+{
+  "events": [
+    {
+      "id": "launch",
+      "date": "2026-06-12",
+      "title": "Nuu · Opening Move",
+      "city": "Sydney",
+      "capacity": 40,
+      "rsvpUrl": "#"
+    },
+    {
+      "id": "ulaanbaatar-meetup",
+      "date": "2026-07-19",
+      "title": "Builders Night",
+      "city": "Ulaanbaatar",
+      "capacity": 60,
+      "rsvpUrl": "#"
+    },
+    {
+      "id": "melbourne-coffee",
+      "date": "2026-08-02",
+      "title": "Coffee & Code",
+      "city": "Melbourne",
+      "capacity": 25,
+      "rsvpUrl": "#"
+    }
+  ]
+}

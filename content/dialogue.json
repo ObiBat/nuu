@@ -1,0 +1,50 @@
+{
+  "pois": {
+    "notice-board": {
+      "title": "Notice Board",
+      "subtitle": "About Nuu",
+      "lines": [
+        "Nuu (нүү) — the verb shatar players use when they make their move.",
+        "We are a community of Mongolian builders, breakers, and shippers — scattered across the world, gathered here.",
+        "Drop your move on the Discord. Then make the next one."
+      ]
+    },
+    "pavilion": {
+      "title": "Pavilion",
+      "subtitle": "Upcoming events",
+      "lines": [
+        "Nuu · Opening Move — Sydney, 12 Jun.",
+        "Builders Night — Ulaanbaatar, 19 Jul.",
+        "Coffee & Code — Melbourne, 2 Aug.",
+        "All RSVP from the events list below the world."
+      ]
+    },
+    "bookshelf": {
+      "title": "Bookshelf",
+      "subtitle": "Library",
+      "lines": [
+        "Four pieces on the shelf — a shatar primer, diaspora notes, an avatar guide, and a design memo about why this world exists.",
+        "More coming. If you have something to add, drop a draft in Discord."
+      ],
+      "cta": { "label": "Open the library →", "href": "/library" }
+    },
+    "portal": {
+      "title": "Portal",
+      "subtitle": "Discord",
+      "lines": [
+        "Step through to join the Discord.",
+        "First move you make: introduce yourself in #intros."
+      ],
+      "cta": { "label": "Join the Discord →", "href": "https://discord.gg/nuu" }
+    },
+    "salon": {
+      "title": "Salon",
+      "subtitle": "Mirror · clothes · style",
+      "lines": [
+        "Welcome. Try a new look — change skin, hair, fit, or body.",
+        "Stored locally for now. Syncs to your profile when Discord login lands."
+      ],
+      "cta": { "label": "Customize →", "href": "#customize" }
+    }
+  }
+}

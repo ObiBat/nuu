@@ -1,7 +1,19 @@
 {
   "name": "nuu",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
+  "description": "nuu — a community of Mongolian builders, breakers, and shippers. A pixel-art world you can walk in.",
+  "homepage": "https://nuu.community",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ObiBat/nuu.git"
+  },
+  "author": {
+    "name": "Obi Batbileg",
+    "email": "obi@craefto.com",
+    "url": "https://obicreative.dev"
+  },
+  "license": "MIT",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -9,7 +21,13 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@use-gesture/react": "^10.3.1",
+    "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
+    "cmdk": "^1.1.1",
+    "geist": "^1.7.1",
     "next": "16.2.6",
+    "phaser": "^4.1.0",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
@@ -21,6 +39,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wawoff2": "^2.0.1"
   }
 }
