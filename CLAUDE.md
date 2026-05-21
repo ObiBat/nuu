@@ -19,7 +19,8 @@ Founder: **Obi Batbileg** ([obicreative.dev](https://obicreative.dev) · [craeft
 | **v0.1 — World** | ✅ shipped |
 | **v0.2 — Public** | ✅ deployed to Vercel + GitHub + CI/CD |
 | **v0.3 — Identity** | ✅ shipped (magic-link auth, profiles, /members, customize→DB) — 0 real signups yet |
-| v0.4–v0.9 | future |
+| **v0.4 — Presence** | 🚀 deployed (Supabase Realtime: live members walk khural + global chat) — **live-unverified**: needs a 2-session sign-in test |
+| v0.5–v0.9 | future |
 
 Live: **https://nuu.today** (DNS resolved, A=76.76.21.21, HTTP 200) and **https://nuu-gules.vercel.app**.
 Repo: **https://github.com/ObiBat/nuu** (public, MIT).
@@ -65,8 +66,12 @@ nuu/
 ├── public/
 │   └── pieces/               # Cburnett SVG chess pieces (CC-BY-SA 3.0, bundled from lichess-org/lila)
 ├── supabase/
-│   └── migrations/
-│       └── 0001_init.sql     # Profiles table + RLS + auto-create trigger (NOT YET RUN ON REMOTE)
+│   ├── migrations/           # ALL APPLIED ON REMOTE
+│   │   ├── 0001_init.sql     # Profiles table + RLS + auto-create trigger
+│   │   ├── 0002_harden_functions.sql  # Pin search_path + revoke EXECUTE on handle_new_user
+│   │   └── 0003_revoke_event_trigger_execute.sql  # Revoke EXECUTE on rls_auto_enable event trigger
+│   └── email-templates/
+│       └── magic-link.html   # Branded sign-in email — MUST be pasted into Supabase Dashboard manually
 ├── scripts/
 │   └── convert-og-fonts.mjs  # One-time woff2→ttf for Satori
 ├── src/
@@ -91,11 +96,13 @@ nuu/
 │   │   ├── ArticleShell.tsx + ArticleRenderer.tsx
 │   │   ├── SpritePortrait.tsx + PixelSprite.tsx # Pixel rendering helpers
 │   │   ├── HeroLanyard / LanyardSection / etc.
-│   │   └── AuthMenu.tsx      # NEW v0.3 (in progress) — sign-in/out dropdown
+│   │   ├── AuthMenu.tsx      # v0.3 — email magic-link sign-in + signed-in dropdown
+│   │   └── PresenceLayer.tsx # NEW v0.4 — resolves signed-in identity → scene, renders global chat input
 │   ├── game/
-│   │   ├── KhuralScene.ts    # The Phaser scene — player, NPCs, POIs, props, depth-sorted
+│   │   ├── KhuralScene.ts    # The Phaser scene — player, NPCs, POIs, props, depth-sorted, + v0.4 remote players/chat/ambient-fade
+│   │   ├── presence.ts       # NEW v0.4 — KhuralPresence: Supabase Realtime channel wrapper (join/track, sendMove, sendChat)
 │   │   ├── sprites.ts        # String-encoded pixel sprites + createPixelTexture utility
-│   │   └── events.ts         # gameEvents bus (dialogue, world pause, character update, ui immersed)
+│   │   └── events.ts         # gameEvents bus (dialogue, world pause, character update, ui immersed, + v0.4 presence:identity/chat:send/chat:typing + lastIdentity cache)
 │   └── lib/
 │       ├── character.ts      # CharacterPalette type + localStorage + curated swatch options
 │       ├── library.ts + shatar.ts  # Content registries + types
@@ -105,8 +112,8 @@ nuu/
 │           ├── client.ts     # Browser client (cookies via @supabase/ssr)
 │           ├── server.ts     # Server client (RSC + actions)
 │           ├── types.ts      # Generated DB types (currently hand-written)
-│           ├── profile.ts    # NEW (WIP) — fetchMyProfile, saveMyProfile, characterFromProfile
-│           └── use-user.ts   # NEW (WIP) — client hook
+│           ├── profile.ts    # v0.3 — fetchMyProfile, saveMyProfile, characterFromProfile, shouldMigrateLocal, slugify
+│           └── use-user.ts   # v0.3 — useSupabaseUser() client hook
 └── src/middleware.ts         # Supabase session refresh, no-ops without env vars
 ```
 
@@ -173,8 +180,20 @@ All external blockers cleared and code wired:
 
 ### v0.3 cleanup remaining (small)
 1. **Hardcoded badge `#0001`** in `HeroLanyard.tsx:284` — still static; swap for real `member_number` when the badge belongs to a signed-in member (currently the badge is a marketing/hero element, so may stay `#0001` intentionally — confirm intent).
-2. **Security advisor WARN** (`mcp__supabase__get_advisors`): `public.rls_auto_enable()` is a `SECURITY DEFINER` function executable by `anon`/`authenticated` via RPC. Revoke EXECUTE or switch to `SECURITY INVOKER` in a `0003` migration.
+2. ~~Security advisor WARN on `rls_auto_enable()`~~ ✅ fixed in `0003` migration (advisors now clean).
 3. **Branded magic-link email** — HTML template at `supabase/email-templates/magic-link.html` must be pasted into Supabase Dashboard → Auth → Email Templates → Magic Link (manual, can't be done via MCP).
+
+## v0.4 — DEPLOYED (live-unverified, 2026-05-22)
+
+Supabase Realtime presence is in production. Architecture:
+- **Scene owns the channel.** `KhuralScene` instantiates `KhuralPresence` (`src/game/presence.ts`) on a single Realtime channel `"khural"`. **Presence** tracks identity + last position (so late joiners see everyone); **broadcast** carries throttled movement (~10Hz, `move` event) and `chat` lines.
+- **React→scene bridge.** `PresenceLayer.tsx` resolves the signed-in member's identity (`useSupabaseUser` + `fetchMyProfile`), dispatches `gameEvents.presenceIdentity(...)`, re-emits on `character:update`, and renders the global chat input. `gameEvents.lastIdentity` cache means the scene connects regardless of mount order.
+- **Rendering.** Remote members render as sprites built from their palette, interpolated toward broadcast targets, with walk-frame animation, a `name #NNNN` tag, and chat speech bubbles. Ambient NPCs fade to `0.22` alpha when ≥1 real member is present. Chat input focus blocks WASD/E via `chat:typing`.
+- **Scope decisions** (don't re-litigate): **signed-in members only** (signed-out visitors see others but don't broadcast); **global** khural chat (not proximity); ambient NPCs **fade** when real people join (not removed).
+
+### v0.4 verification still owed
+- **2-session live test**: sign in via magic-link from two browsers/devices, confirm avatars appear, movement syncs, chat bubbles cross sessions, ambient NPCs fade, and sign-out removes the avatar. Built + deploys clean but NOT yet verified end-to-end with two real members (0 signups so far).
+- The `"khural"` broadcast channel has no row-level gating — any signed-in member can join (intended for v0.4).
 
 ### Placeholders to swap before public launch
 - `https://discord.gg/nuu` → real invite (in `HeroLanyard.tsx` + `content/dialogue.json`)
@@ -220,16 +239,32 @@ his profile shows.
 
 ---
 
-## Roadmap (post v0.3)
+## Roadmap (post v0.4)
 
-- **v0.4** — Supabase Realtime: see other members walk the khural live, in-world chat
-- **v0.5** — Events CRUD, Notice Board posts, library contributions, newsletter
+- ~~**v0.4** — Supabase Realtime: see other members walk the khural live, in-world chat~~ 🚀 deployed (live-unverified)
+- **v0.5 — Content & contribution (NEXT)** — Events CRUD, Notice Board posts, library contributions, newsletter
 - **v0.6** — Collisions, mobile touch, 4-direction sprites + walk frames, multi-map (garden / arcade), day/night
 - **v0.7** — World-class pixel art (Kenney Tiny Town pack or commissioned)
 - **v0.8** — Achievements, inventory, playable shatar mini-game at Arcade POI
 - **v0.9** — Ecosystem (MAS-NSW, Bayan Mongol, sponsor slots)
 
-Critical path: ~~v0.3 (identity)~~ ✅ → **v0.4 (presence) — NEXT** → the rest is iteration.
+Critical path: ~~v0.3 (identity)~~ ✅ → ~~v0.4 (presence)~~ 🚀 → **v0.5 (content) — NEXT** → the rest is iteration.
+
+### v0.5 scope (tee-up)
+
+The theme is **members create, not just exist** — give the community things to post and read. Likely slices, smallest-first:
+
+1. **Notice Board posts** (the About POI / notice-board) — a `posts` table (author `user_id`, body, created_at) + RLS (public read, authed insert, owner delete). Render in the About panel; compose box when signed in. Smallest real CRUD loop, reuses the v0.3/v0.4 auth + profile plumbing.
+2. **Events CRUD** — promote `content/events.json` to an `events` table; authed members propose, founder/role-gated approves. Surfaces in the Events panel + Pavilion POI. Needs a `role`/`is_admin` concept (currently `profiles.role` is free-text — may need a real flag).
+3. **Library contributions** — let members submit articles (currently TS modules in `content/library/`). Bigger lift: needs a DB-backed article store + a writing/markdown flow + moderation. Could defer to v0.5.x.
+4. **Newsletter** — capture emails (Supabase table or a provider like Resend/Buttondown). Lowest urgency.
+
+**Open questions for v0.5 kickoff** (decide before building):
+- Moderation model: open-post + after-the-fact removal, or approval queue? Drives whether we need an admin role now.
+- Library contributions in v0.5 or pushed to v0.5.x (it's the heaviest piece)?
+- Realtime for the Notice Board (live-updating posts via the existing channel pattern) or simple revalidate-on-load?
+
+**Prereq carried from v0.4:** finish the 2-session live verification before piling v0.5 on top, so we're not debugging presence and new CRUD at once.
 
 ---
 
@@ -246,3 +281,11 @@ Critical path: ~~v0.3 (identity)~~ ✅ → **v0.4 (presence) — NEXT** → the 
   desync bugs across viewport sizes)
 - **Brand stays monochrome**: per user feedback, OG images are pure
   white/black with subtle grid pattern (no warm sand/brown)
+- **Magic-link over Discord OAuth**: v0.3 dropped Discord as the auth
+  provider in favor of email magic-link (simpler, no third-party app to
+  maintain). Discord remains the *destination* (Portal POI), not login.
+- **Realtime: scene owns the channel**: the Phaser scene (not React)
+  holds the Supabase Realtime channel — it already has player position,
+  sprite rendering, and bubbles. React only feeds identity + chat in via
+  `gameEvents`. Presence = identity + last position; broadcast = movement
+  + chat. Signed-in members only; global (not proximity) chat.
