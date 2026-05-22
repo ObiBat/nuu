@@ -36,3 +36,7 @@ Outdoor terrain tiles from the **Liberated Pixel Cup base assets** (<https://git
 ## World objects
 
 Trees, bushes, rocks, the house, and signs are from the **LPC base assets** (Sharm / Lanea Zimmerman), **CC-BY-SA 3.0 / GPL 3.0**, extracted/composited by `scripts/build_objects.py`.
+
+## Ninja Adventure (world redesign)
+
+Tiles, characters, and facesets from the **Ninja Adventure Asset Pack** by **pixel-boy & AAA** (<https://pixel-boy.itch.io/ninja-adventure-asset-pack>), released **CC0 / public domain**. Fetched by `scripts/build_ninja.py`.
