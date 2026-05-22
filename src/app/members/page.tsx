@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { createSupabaseServer } from "@/lib/supabase/server";
-import { SpritePortrait } from "@/components/SpritePortrait";
-import { DEFAULT_CHARACTER, type CharacterPalette } from "@/lib/character";
+import { facesetUrl, NINJA_PRESETS, type NinjaPreset } from "@/lib/ninja-preset";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 
@@ -27,14 +26,14 @@ type MemberCard = {
   role: string;
   location: string;
   bio: string;
-  character: CharacterPalette | Record<string, never>;
+  character_preset: string;
 };
 
 export default async function MembersPage() {
   const supabase = await createSupabaseServer();
   const { data } = await supabase
     .from("profiles")
-    .select("slug,member_number,display_name,role,location,bio,character")
+    .select("slug,member_number,display_name,role,location,bio,character_preset")
     .order("member_number", { ascending: true });
 
   const members = (data ?? []) as MemberCard[];
@@ -81,7 +80,6 @@ export default async function MembersPage() {
           <section className="flex-1">
             <ul className="mx-auto max-w-[1200px] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-border">
               {named.map((m) => {
-                const palette = paletteOrDefault(m.character);
                 const href = `/members/${m.slug ?? m.member_number}`;
                 return (
                   <li key={m.member_number} className="bg-background">
@@ -90,7 +88,15 @@ export default async function MembersPage() {
                       className="group block h-full p-6 hover:bg-border/20 transition-colors"
                     >
                       <article className="flex flex-col gap-4">
-                        <SpritePortrait palette={palette} scale={4} />
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={facesetUrl(presetOf(m.character_preset))}
+                          alt={m.display_name}
+                          width={64}
+                          height={64}
+                          className="w-16 h-16 rounded-lg bg-border/30"
+                          style={{ imageRendering: "pixelated" }}
+                        />
                         <div>
                           <div className="flex items-baseline gap-2">
                             <h2 className="font-[family-name:var(--font-pixel)] text-base">
@@ -124,9 +130,8 @@ export default async function MembersPage() {
   );
 }
 
-function paletteOrDefault(c: MemberCard["character"]): CharacterPalette {
-  if (!c || typeof c !== "object" || Object.keys(c).length === 0) {
-    return DEFAULT_CHARACTER;
-  }
-  return { ...DEFAULT_CHARACTER, ...(c as Partial<CharacterPalette>) };
+function presetOf(value: string): NinjaPreset {
+  return (NINJA_PRESETS as readonly string[]).includes(value)
+    ? (value as NinjaPreset)
+    : "Boy";
 }

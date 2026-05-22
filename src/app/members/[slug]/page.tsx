@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createSupabaseServer } from "@/lib/supabase/server";
-import { SpritePortrait } from "@/components/SpritePortrait";
-import { DEFAULT_CHARACTER, type CharacterPalette } from "@/lib/character";
+import { facesetUrl, NINJA_PRESETS, type NinjaPreset } from "@/lib/ninja-preset";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 
@@ -16,7 +15,7 @@ type MemberProfile = {
   role: string;
   location: string;
   bio: string;
-  character: CharacterPalette | Record<string, never>;
+  character_preset: string;
   created_at: string;
 };
 
@@ -28,7 +27,7 @@ async function loadProfile(slugOrNumber: string): Promise<MemberProfile | null> 
   const query = supabase
     .from("profiles")
     .select(
-      "slug,member_number,display_name,role,location,bio,character,created_at",
+      "slug,member_number,display_name,role,location,bio,character_preset,created_at",
     );
 
   const { data } = isNumeric
@@ -69,7 +68,7 @@ export default async function MemberPage({
   const profile = await loadProfile(slug);
   if (!profile) notFound();
 
-  const palette = paletteOrDefault(profile.character);
+  const preset = presetOf(profile.character_preset);
   const numberLabel = `#${String(profile.member_number).padStart(4, "0")}`;
   const joined = new Intl.DateTimeFormat("en-AU", {
     month: "short",
@@ -96,7 +95,15 @@ export default async function MemberPage({
           <div className="mx-auto max-w-[1200px] px-6 py-10 md:py-14 grid grid-cols-1 md:grid-cols-[280px_1fr] gap-10">
             <div className="flex flex-col items-start gap-4">
               <div className="flex items-center justify-center bg-border/30 rounded-xl p-8 w-full">
-                <SpritePortrait palette={palette} scale={9} />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={facesetUrl(preset)}
+                  alt={profile.display_name || "Member"}
+                  width={152}
+                  height={152}
+                  className="w-[152px] h-[152px]"
+                  style={{ imageRendering: "pixelated" }}
+                />
               </div>
               <span className="font-mono text-[10px] uppercase tracking-widest text-muted">
                 joined {joined}
@@ -132,11 +139,8 @@ export default async function MemberPage({
   );
 }
 
-function paletteOrDefault(
-  c: MemberProfile["character"],
-): CharacterPalette {
-  if (!c || typeof c !== "object" || Object.keys(c).length === 0) {
-    return DEFAULT_CHARACTER;
-  }
-  return { ...DEFAULT_CHARACTER, ...(c as Partial<CharacterPalette>) };
+function presetOf(value: string): NinjaPreset {
+  return (NINJA_PRESETS as readonly string[]).includes(value)
+    ? (value as NinjaPreset)
+    : "Boy";
 }
