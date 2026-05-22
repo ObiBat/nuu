@@ -133,14 +133,14 @@ const OBI_NPC: InteractableData = {
   y: 180,
   label: "Obi · Founder",
   spriteKey: "char-obi-idle",
-  scale: SPRITE_SCALE,
+  scale: LPC_SCALE,
 };
 
 type AmbientNpc = {
   id: string;
   x: number;
   y: number;
-  spriteKey: string;
+  preset: LpcPreset;
   lines: string[];
 };
 
@@ -149,42 +149,42 @@ const AMBIENT_NPCS: AmbientNpc[] = [
     id: "amb-1",
     x: 750,
     y: 250,
-    spriteKey: "char-ruby-idle",
+    preset: "wanderer",
     lines: ["Sain bain uu!", "First move?", "From Ulaanbaatar."],
   },
   {
     id: "amb-2",
     x: 260,
     y: 440,
-    spriteKey: "char-azure-idle",
+    preset: "nomad",
     lines: ["Building from Berlin.", "Shipping today.", "Anyone in Melb?"],
   },
   {
     id: "amb-3",
     x: 760,
     y: 440,
-    spriteKey: "char-forest-idle",
+    preset: "steppe",
     lines: ["Trying shatar.", "Where's the library?", "TS or Rust?"],
   },
   {
     id: "amb-4",
     x: 410,
     y: 380,
-    spriteKey: "char-sand-idle",
+    preset: "nomad",
     lines: ["Good morning.", "Nice khural.", "Who's the founder?"],
   },
   {
     id: "amb-5",
     x: 620,
     y: 360,
-    spriteKey: "char-ruby-idle",
+    preset: "wanderer",
     lines: ["GM nomads.", "Coffee somewhere?", "Stand-up in 5."],
   },
   {
     id: "amb-6",
     x: 880,
     y: 380,
-    spriteKey: "char-azure-idle",
+    preset: "steppe",
     lines: ["Just shipped.", "Anyone reviewing?", "Cmd-K!"],
   },
 ];
@@ -229,8 +229,15 @@ type Interactable = Omit<InteractableData, "label"> & {
 };
 
 type AmbientNpcState = AmbientNpc & {
-  sprite: Phaser.GameObjects.Image;
+  sprite: Phaser.GameObjects.Sprite;
   baseY: number;
+  dir4: Dir4;
+  homeX: number;
+  homeY: number;
+  targetX: number;
+  targetY: number;
+  moving: boolean;
+  pauseTimer: number;
   bubble: Phaser.GameObjects.Container | null;
   bubbleTimer: number;
   bubbleVisibleFor: number;
@@ -827,10 +834,21 @@ export class KhuralScene extends Phaser.Scene {
 
   private spawnInteractables() {
     [...POIS, OBI_NPC].forEach((item) => {
-      const sprite = this.add
-        .image(item.x, item.y, item.spriteKey)
+      // The founder NPC uses an LPC character (static idle frame); POIs keep
+      // their procedural building sprites until the tileset pass (increment C).
+      const isObi = item.id === "obi";
+      const sprite = (
+        isObi
+          ? this.add.image(
+              item.x,
+              item.y,
+              lpcTextureKey("steppe"),
+              lpcIdleFrame("down"),
+            )
+          : this.add.image(item.x, item.y, item.spriteKey)
+      )
         .setScale(item.scale ?? SPRITE_SCALE)
-        .setOrigin(0.5, 0.85)
+        .setOrigin(0.5, isObi ? 0.92 : 0.85)
         .setInteractive({ useHandCursor: true });
 
       sprite.on("pointerover", () => sprite.setTint(0xfff4d0));
@@ -947,26 +965,26 @@ export class KhuralScene extends Phaser.Scene {
 
   private spawnAmbient() {
     AMBIENT_NPCS.forEach((npc) => {
+      registerLpcAnims(this, npc.preset);
       const sprite = this.add
-        .image(npc.x, npc.y, npc.spriteKey)
-        .setScale(SPRITE_SCALE * 0.85)
-        .setOrigin(0.5, 0.85)
-        .setAlpha(0.88)
+        .sprite(npc.x, npc.y, lpcTextureKey(npc.preset))
+        .setScale(LPC_SCALE * 0.92)
+        .setOrigin(0.5, 0.92)
+        .setFrame(lpcIdleFrame("down"))
+        .setAlpha(0.92)
         .setDepth(npc.y);
-
-      this.tweens.add({
-        targets: sprite,
-        y: npc.y - 2,
-        duration: 900 + Math.random() * 400,
-        yoyo: true,
-        repeat: -1,
-        ease: "Sine.InOut",
-      });
 
       const state: AmbientNpcState = {
         ...npc,
         sprite,
         baseY: npc.y,
+        dir4: "down",
+        homeX: npc.x,
+        homeY: npc.y,
+        targetX: npc.x,
+        targetY: npc.y,
+        moving: false,
+        pauseTimer: 800 + Math.random() * 3000,
         bubble: null,
         bubbleTimer: 2000 + Math.random() * 4000,
         bubbleVisibleFor: 0,
@@ -1121,10 +1139,62 @@ export class KhuralScene extends Phaser.Scene {
     this.player.y = this.playerBaseY + bob;
     this.player.setDepth(this.playerBaseY + 1);
 
+    const AMB_SPEED = 36;
+    const AMB_RADIUS = 110;
     this.ambient.forEach((npc) => {
+      // Wander: stroll to a random point near home, pause, repeat.
+      if (npc.pauseTimer > 0) {
+        npc.pauseTimer -= delta;
+        if (npc.moving) {
+          npc.moving = false;
+          npc.sprite.stop();
+          npc.sprite.setFrame(lpcIdleFrame(npc.dir4));
+        }
+        if (npc.pauseTimer <= 0) {
+          const a = Math.random() * Math.PI * 2;
+          const r = Math.random() * AMB_RADIUS;
+          npc.targetX = Phaser.Math.Clamp(
+            npc.homeX + Math.cos(a) * r,
+            30,
+            WORLD_W - 30,
+          );
+          npc.targetY = Phaser.Math.Clamp(
+            npc.homeY + Math.sin(a) * r,
+            30,
+            WORLD_H - 30,
+          );
+          npc.moving = true;
+        }
+      } else {
+        const dx = npc.targetX - npc.x;
+        const dy = npc.targetY - npc.baseY;
+        const dist = Math.hypot(dx, dy);
+        if (dist < 3) {
+          npc.moving = false;
+          npc.pauseTimer = 1500 + Math.random() * 4500;
+          npc.sprite.stop();
+          npc.sprite.setFrame(lpcIdleFrame(npc.dir4));
+        } else {
+          const step = (AMB_SPEED * delta) / 1000;
+          const nx = npc.x + (dx / dist) * step;
+          const ny = npc.baseY + (dy / dist) * step;
+          if (this.collidesAt(nx, ny)) {
+            npc.pauseTimer = 400; // blocked — pause then pick a new spot
+          } else {
+            npc.x = nx;
+            npc.baseY = ny;
+          }
+          npc.dir4 = vectorToDir4(dx, dy);
+          npc.sprite.play(lpcWalkAnim(npc.preset, npc.dir4), true);
+        }
+      }
+      npc.sprite.x = npc.x;
+      npc.sprite.y = npc.baseY;
+      npc.sprite.setDepth(npc.baseY);
+
       if (npc.bubble) {
         npc.bubble.x = npc.x;
-        npc.bubble.y = npc.baseY - 42;
+        npc.bubble.y = npc.baseY - 46;
         npc.bubbleVisibleFor -= delta;
         if (npc.bubbleVisibleFor <= 0) {
           this.hideBubble(npc);
