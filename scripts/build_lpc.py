@@ -28,19 +28,25 @@ WALK_COLS = 9
 
 # Presets: ordered layer paths (relative to spritesheets/, no .png).
 # Bottom-to-top compositing order.
+# Layers are composited bottom-to-top. LPC zPos order matters: body(10) <
+# eyes/nose(105) < eyebrows < hair(120). Hair must NOT cover the forehead or
+# it erases the (small) face — so defaults use short/back hairstyles + visible
+# eyebrows so faces read at game scale.
 PRESETS = {
     "wanderer": [
         "body/bodies/male/light",
         "eyes/human/adult/brown",
+        "eyes/eyebrows/thick/adult/black",
         "head/nose/button/adult/light",
         "legs/pants/male/charcoal",
         "feet/shoes/male/brown",
         "torso/clothes/longsleeve/longsleeve/male/forest",
-        "hair/plain/male/black",
+        "hair/high_and_tight/male/black",
     ],
     "nomad": [
         "body/bodies/female/light",
         "eyes/human/adult/blue",
+        "eyes/eyebrows/thick/adult/black",
         "head/nose/button/adult/light",
         "legs/pants/female/brown",
         "feet/shoes/female/black",
@@ -50,11 +56,12 @@ PRESETS = {
     "steppe": [
         "body/bodies/male/bronze",
         "eyes/human/adult/brown",
+        "eyes/eyebrows/thick/adult/black",
         "head/nose/button/adult/bronze",
         "legs/pants/male/blue",
         "feet/shoes/male/black",
         "torso/clothes/longsleeve/longsleeve/male/maroon",
-        "hair/messy1/male/black",
+        "hair/flat_top_fade/male/black",
     ],
 }
 
