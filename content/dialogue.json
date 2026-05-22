@@ -1,17 +1,17 @@
 {
   "pois": {
     "notice-board": {
-      "title": "The Rocks",
-      "subtitle": "About Nuu",
+      "title": "About Nuu",
+      "subtitle": "the noticeboard",
       "lines": [
         "Nuu (нүү) — the verb shatar players use when they make their move.",
-        "We are a community of Mongolian builders, breakers, and shippers — scattered across the world, gathered here by the harbour.",
+        "A community of Mongolian builders, breakers, and shippers — scattered across the world, gathered here.",
         "Drop your move on the Discord. Then make the next one."
       ]
     },
     "pavilion": {
-      "title": "Circular Quay",
-      "subtitle": "Upcoming events",
+      "title": "Events",
+      "subtitle": "upcoming gatherings",
       "lines": [
         "Nuu · Opening Move — Sydney, 12 Jun.",
         "Builders Night — Ulaanbaatar, 19 Jul.",
@@ -20,29 +20,29 @@
       ]
     },
     "bookshelf": {
-      "title": "State Library",
-      "subtitle": "Library",
+      "title": "Library",
+      "subtitle": "read · write · share",
       "lines": [
-        "Essays and primers on the shelf — a shatar guide, diaspora notes, and more from the community.",
+        "Essays and primers — a shatar guide, diaspora notes, and more from the community.",
         "Members can write their own. Submit a draft and an editor will publish it."
       ],
       "cta": { "label": "Open the library →", "href": "/library" }
     },
     "portal": {
-      "title": "Manly Ferry",
-      "subtitle": "to Discord",
+      "title": "Discord",
+      "subtitle": "step through",
       "lines": [
-        "Catch the ferry across to the Discord.",
+        "Step through the portal to join the Discord.",
         "First move you make: introduce yourself in #intros."
       ],
       "cta": { "label": "Join the Discord →", "href": "https://discord.gg/nuu" }
     },
     "salon": {
-      "title": "Bondi",
-      "subtitle": "Your character",
+      "title": "Customize",
+      "subtitle": "your character",
       "lines": [
         "Pick your character — choose a look you like from the lineup.",
-        "Saved on this device for now."
+        "Your pick shows to other members and is saved to your profile."
       ],
       "cta": { "label": "Choose your character →", "href": "#customize" }
     }

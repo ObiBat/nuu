@@ -89,9 +89,38 @@ def main() -> int:
     nature = raw["TilesetNature"]
     trim(nature.crop((16, 32, 48, 80))).save(os.path.join(ROOT, "obj", "tree.png"))
     trim(nature.crop((16, 160, 48, 192))).save(os.path.join(ROOT, "obj", "bush.png"))
+    import numpy as np
+
     house = raw["TilesetHouse"]
     # A complete small house (peaked roof + windowed walls + door).
-    trim(house.crop((0, 174, 47, 221))).save(os.path.join(ROOT, "obj", "house.png"))
+    house_img = trim(house.crop((0, 174, 47, 221)))
+    house_img.save(os.path.join(ROOT, "obj", "house.png"))
+
+    # Roof palette-swap → distinct buildings (blue + green roofs) so each POI
+    # gets its own look. Recolour the red roof pixels, preserving shading.
+    def recolour_roof(im: Image.Image, rgb_mul: tuple[float, float, float]) -> Image.Image:
+        arr = np.array(im).astype(int)
+        r, g, b, al = arr[..., 0], arr[..., 1], arr[..., 2], arr[..., 3]
+        roof = (al > 60) & (r > g + 25) & (r > b + 25) & (r > 110)
+        lum = (0.3 * r + 0.5 * g + 0.2 * b)
+        out = arr.copy()
+        out[..., 0] = np.where(roof, np.clip(lum * rgb_mul[0], 0, 255), r)
+        out[..., 1] = np.where(roof, np.clip(lum * rgb_mul[1], 0, 255), g)
+        out[..., 2] = np.where(roof, np.clip(lum * rgb_mul[2], 0, 255), b)
+        return Image.fromarray(out.astype("uint8"), "RGBA")
+
+    recolour_roof(house_img, (0.45, 0.65, 1.15)).save(
+        os.path.join(ROOT, "obj", "house_blue.png")
+    )
+    recolour_roof(house_img, (0.45, 0.95, 0.6)).save(
+        os.path.join(ROOT, "obj", "house_green.png")
+    )
+
+    # WaterMill — a distinct harbour-side building.
+    mill = Image.open(
+        io.BytesIO(fetch("Backgrounds/Animated/WaterMill/Watermill_A_34x36.png"))
+    ).convert("RGBA")
+    trim(mill.crop((0, 0, 34, 36))).save(os.path.join(ROOT, "obj", "mill.png"))
     rock = Image.open(io.BytesIO(fetch("FX/Particle/RockGray.png"))).convert("RGBA")
     trim(rock.crop((0, 0, 16, 16))).save(os.path.join(ROOT, "obj", "rock.png"))
     # A harbour boat (first frame).
@@ -102,7 +131,7 @@ def main() -> int:
         io.BytesIO(fetch("Backgrounds/Animated/Flag/FlagRed16x16.png"))
     ).convert("RGBA")
     trim(flag.crop((0, 0, 16, 16))).save(os.path.join(ROOT, "obj", "flag.png"))
-    for n in ["tree", "bush", "house", "rock", "boat", "flag"]:
+    for n in ["tree", "bush", "house", "house_blue", "house_green", "mill", "rock", "boat", "flag"]:
         print(f"obj {n} {Image.open(os.path.join(ROOT, 'obj', n + '.png')).size}")
 
     for ch in CHARACTERS:

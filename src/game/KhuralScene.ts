@@ -75,7 +75,7 @@ const POIS: InteractableData[] = [
     type: "poi",
     x: 900,
     y: 300,
-    label: "The Rocks",
+    label: "About",
     spriteKey: "na-flag",
     scale: 3.0,
   },
@@ -84,7 +84,7 @@ const POIS: InteractableData[] = [
     type: "poi",
     x: 1240,
     y: 360,
-    label: "Bondi",
+    label: "Customize",
     spriteKey: "na-house",
     scale: 1.9,
   },
@@ -93,16 +93,16 @@ const POIS: InteractableData[] = [
     type: "poi",
     x: 1500,
     y: 680,
-    label: "Circular Quay",
-    spriteKey: "na-house",
-    scale: 1.9,
+    label: "Events",
+    spriteKey: "na-mill",
+    scale: 2.6,
   },
   {
     id: "bookshelf",
     type: "poi",
     x: 300,
     y: 640,
-    label: "State Library",
+    label: "Library",
     spriteKey: "na-house",
     scale: 1.9,
   },
@@ -111,7 +111,7 @@ const POIS: InteractableData[] = [
     type: "poi",
     x: 900,
     y: 980,
-    label: "Manly Ferry",
+    label: "Discord",
     spriteKey: "poi-portal",
     scale: SPRITE_SCALE * 1.15,
   },
@@ -340,6 +340,8 @@ export class KhuralScene extends Phaser.Scene {
     this.load.image("na-bush", "/art/ninja/obj/bush.png");
     this.load.image("na-rock", "/art/ninja/obj/rock.png");
     this.load.image("na-house", "/art/ninja/obj/house.png");
+    this.load.image("na-house-blue", "/art/ninja/obj/house_blue.png");
+    this.load.image("na-mill", "/art/ninja/obj/mill.png");
     this.load.image("na-boat", "/art/ninja/obj/boat.png");
     this.load.image("na-flag", "/art/ninja/obj/flag.png");
   }
@@ -874,7 +876,12 @@ export class KhuralScene extends Phaser.Scene {
           return { key: "na-flag", oy: 0.95, fp: { w: 10, h: 8 } };
         if (item.id === "portal")
           return { key: "poi-portal", oy: 0.85, fp: { w: 44, h: 18 } };
-        return { key: "na-house", oy: 0.9, fp: { w: 70, h: 26 } };
+        // A distinct building per POI.
+        if (item.id === "pavilion")
+          return { key: "na-mill", oy: 0.9, fp: { w: 56, h: 24 } };
+        if (item.id === "bookshelf")
+          return { key: "na-house-blue", oy: 0.9, fp: { w: 70, h: 26 } };
+        return { key: "na-house", oy: 0.9, fp: { w: 70, h: 26 } }; // salon
       })();
 
       const sprite = this.add
