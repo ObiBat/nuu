@@ -96,23 +96,28 @@ def main() -> int:
     house_img = trim(house.crop((0, 174, 47, 221)))
     house_img.save(os.path.join(ROOT, "obj", "house.png"))
 
-    # Roof palette-swap → distinct buildings (blue + green roofs) so each POI
-    # gets its own look. Recolour the red roof pixels, preserving shading.
-    def recolour_roof(im: Image.Image, rgb_mul: tuple[float, float, float]) -> Image.Image:
-        arr = np.array(im).astype(int)
+    # Roof palette-swap → distinct buildings. This house has a light/white
+    # roof; tint the light, desaturated pixels in the upper half toward a hue,
+    # preserving shading.
+    def recolour_roof(im: Image.Image, base: tuple[float, float, float]) -> Image.Image:
+        arr = np.array(im).astype(float)
         r, g, b, al = arr[..., 0], arr[..., 1], arr[..., 2], arr[..., 3]
-        roof = (al > 60) & (r > g + 25) & (r > b + 25) & (r > 110)
-        lum = (0.3 * r + 0.5 * g + 0.2 * b)
+        h = arr.shape[0]
+        ys = np.arange(h).reshape(-1, 1)
+        upper = ys < h * 0.58
+        mx = np.max(arr[..., :3], axis=2)
+        mn = np.min(arr[..., :3], axis=2)
+        roof = (al > 60) & (mx > 165) & ((mx - mn) < 45) & upper
+        lum = (r + g + b) / 3.0 / 255.0  # 0..1 shading
         out = arr.copy()
-        out[..., 0] = np.where(roof, np.clip(lum * rgb_mul[0], 0, 255), r)
-        out[..., 1] = np.where(roof, np.clip(lum * rgb_mul[1], 0, 255), g)
-        out[..., 2] = np.where(roof, np.clip(lum * rgb_mul[2], 0, 255), b)
+        for i, ch in enumerate(base):
+            out[..., i] = np.where(roof, np.clip(lum * ch, 0, 255), arr[..., i])
         return Image.fromarray(out.astype("uint8"), "RGBA")
 
-    recolour_roof(house_img, (0.45, 0.65, 1.15)).save(
+    recolour_roof(house_img, (95, 150, 235)).save(
         os.path.join(ROOT, "obj", "house_blue.png")
     )
-    recolour_roof(house_img, (0.45, 0.95, 0.6)).save(
+    recolour_roof(house_img, (235, 150, 90)).save(
         os.path.join(ROOT, "obj", "house_green.png")
     )
 
