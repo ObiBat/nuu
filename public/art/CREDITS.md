@@ -32,3 +32,7 @@ Per-layer authors and licenses:
 ## Ground tiles
 
 Outdoor terrain tiles from the **Liberated Pixel Cup base assets** (<https://github.com/OpenGameArt/LiberatedPixelCup>), by **Lanea Zimmerman (Sharm)**, licensed **CC-BY-SA 3.0 / GPL 3.0**. Extracted by `scripts/build_tiles.py`.
+
+## World objects
+
+Trees, bushes, rocks, the house, and signs are from the **LPC base assets** (Sharm / Lanea Zimmerman), **CC-BY-SA 3.0 / GPL 3.0**, extracted/composited by `scripts/build_objects.py`.

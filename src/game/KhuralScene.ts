@@ -82,41 +82,41 @@ const POIS: InteractableData[] = [
     x: 900,
     y: 300,
     label: "About",
-    spriteKey: "poi-notice-board",
-    scale: SPRITE_SCALE * 0.95,
+    spriteKey: "obj-sign",
+    scale: 1.3,
   },
   {
     id: "salon",
     type: "poi",
-    x: 1220,
-    y: 380,
+    x: 1240,
+    y: 360,
     label: "Salon",
-    spriteKey: "poi-salon",
-    scale: SPRITE_SCALE * 0.95,
+    spriteKey: "obj-house",
+    scale: 0.62,
   },
   {
     id: "pavilion",
     type: "poi",
-    x: 1480,
-    y: 660,
+    x: 1500,
+    y: 680,
     label: "Events",
-    spriteKey: "poi-pavilion",
-    scale: SPRITE_SCALE,
+    spriteKey: "obj-house",
+    scale: 0.62,
   },
   {
     id: "bookshelf",
     type: "poi",
-    x: 320,
-    y: 620,
+    x: 300,
+    y: 640,
     label: "Library",
-    spriteKey: "poi-bookshelf",
-    scale: SPRITE_SCALE * 0.95,
+    spriteKey: "obj-house",
+    scale: 0.62,
   },
   {
     id: "portal",
     type: "poi",
     x: 900,
-    y: 960,
+    y: 980,
     label: "Discord",
     spriteKey: "poi-portal",
     scale: SPRITE_SCALE * 1.15,
@@ -342,6 +342,11 @@ export class KhuralScene extends Phaser.Scene {
     this.load.image("tile-grass-detail", "/art/tiles/grass_detail.png");
     this.load.image("tile-dirt", "/art/tiles/dirt.png");
     this.load.image("tile-water", "/art/tiles/water.png");
+    this.load.image("obj-tree", "/art/objects/tree.png");
+    this.load.image("obj-bush", "/art/objects/bush.png");
+    this.load.image("obj-rock", "/art/objects/rock.png");
+    this.load.image("obj-house", "/art/objects/house.png");
+    this.load.image("obj-sign", "/art/objects/sign.png");
   }
 
   create() {
@@ -803,28 +808,27 @@ export class KhuralScene extends Phaser.Scene {
     g.strokeCircle(cx, cy, padR - 28);
   }
 
-  // Footprint colliders by prop kind (trees/rocks block; lamps/plants don't).
-  private static readonly PROP_FOOTPRINT: Record<
+  // Per-kind config: LPC object sprites (lamp stays procedural). oy = vertical
+  // origin so the sprite's base sits on its world y; fp = collider footprint.
+  private static readonly PROP_CFG: Record<
     PropKind,
-    { w: number; h: number } | null
+    { key: string; scale: number; oy: number; fp: { w: number; h: number } | null }
   > = {
-    tree: { w: 22, h: 14 },
-    rock: { w: 30, h: 16 },
-    plant: null,
-    lamp: { w: 10, h: 8 },
+    tree: { key: "obj-tree", scale: 0.82, oy: 0.95, fp: { w: 20, h: 12 } },
+    rock: { key: "obj-rock", scale: 1.2, oy: 0.82, fp: { w: 30, h: 14 } },
+    plant: { key: "obj-bush", scale: 1.0, oy: 0.85, fp: null },
+    lamp: { key: "prop-lamp", scale: SPRITE_SCALE * 0.85, oy: 0.85, fp: { w: 10, h: 8 } },
   };
 
   private spawnProps() {
     PROPS.forEach((p) => {
-      const key = `prop-${p.kind}`;
-      const scale = (p.scale ?? 1) * SPRITE_SCALE * 0.85;
+      const cfg = KhuralScene.PROP_CFG[p.kind];
       this.add
-        .image(p.x, p.y, key)
-        .setScale(scale)
-        .setOrigin(0.5, 0.85)
+        .image(p.x, p.y, cfg.key)
+        .setScale((p.scale ?? 1) * cfg.scale)
+        .setOrigin(0.5, cfg.oy)
         .setDepth(p.y);
-      const fp = KhuralScene.PROP_FOOTPRINT[p.kind];
-      if (fp) this.addCollider(p.x, p.y, fp.w, fp.h);
+      if (cfg.fp) this.addCollider(p.x, p.y, cfg.fp.w, cfg.fp.h);
     });
   }
 
@@ -854,19 +858,33 @@ export class KhuralScene extends Phaser.Scene {
     [...POIS, OBI_NPC].forEach((item) => {
       // The founder NPC uses an LPC character (static idle frame); POIs keep
       // their procedural building sprites until the tileset pass (increment C).
-      const isObi = item.id === "obi";
-      const sprite = (
-        isObi
-          ? this.add.image(
-              item.x,
-              item.y,
-              lpcTextureKey("steppe"),
-              lpcIdleFrame("down"),
-            )
-          : this.add.image(item.x, item.y, item.spriteKey)
-      )
+      // Resolve each interactable to its art + footprint. Founder = LPC
+      // character; notice-board = signpost; portal = its glowing pixel sprite;
+      // the rest are LPC houses (the Sydney village around the khural).
+      const cfg = ((): {
+        key: string;
+        frame?: number;
+        oy: number;
+        fp: { w: number; h: number } | null;
+      } => {
+        if (item.id === "obi")
+          return {
+            key: lpcTextureKey("steppe"),
+            frame: lpcIdleFrame("down"),
+            oy: 0.92,
+            fp: null,
+          };
+        if (item.id === "notice-board")
+          return { key: "obj-sign", oy: 0.95, fp: { w: 16, h: 10 } };
+        if (item.id === "portal")
+          return { key: "poi-portal", oy: 0.85, fp: { w: 44, h: 18 } };
+        return { key: "obj-house", oy: 0.95, fp: { w: 110, h: 36 } };
+      })();
+
+      const sprite = this.add
+        .image(item.x, item.y, cfg.key, cfg.frame)
         .setScale(item.scale ?? SPRITE_SCALE)
-        .setOrigin(0.5, isObi ? 0.92 : 0.85)
+        .setOrigin(0.5, cfg.oy)
         .setInteractive({ useHandCursor: true });
 
       sprite.on("pointerover", () => sprite.setTint(0xfff4d0));
@@ -877,8 +895,7 @@ export class KhuralScene extends Phaser.Scene {
         gameEvents.openDialogue({ type: item.type, id: item.id });
       });
 
-      // POI buildings are solid; the founder NPC stays walk-through.
-      if (item.type === "poi") this.addCollider(item.x, item.y, 52, 22);
+      if (cfg.fp) this.addCollider(item.x, item.y, cfg.fp.w, cfg.fp.h);
 
       const label = this.add
         .text(item.x, item.y + 14, item.label, {
