@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { articles } from "@/lib/library";
+import { getLibraryEntries } from "@/lib/library-server";
 
-export function LibraryGrid() {
+export async function LibraryGrid() {
+  const articles = await getLibraryEntries();
   const featured = articles.slice(0, 3);
   return (
     <section

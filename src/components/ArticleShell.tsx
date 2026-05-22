@@ -1,15 +1,37 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { Nav } from "./Nav";
 import { Footer } from "./Footer";
-import { ArticleRenderer } from "./ArticleRenderer";
-import { articleDateFormat, type Article } from "@/lib/library";
+import { articleDateFormat } from "@/lib/library";
 
-type Props = {
-  article: Article;
-  related: Article[];
+export type RelatedLink = {
+  slug: string;
+  title: string;
+  tag: string;
+  readMinutes: number;
 };
 
-export function ArticleShell({ article, related }: Props) {
+type Props = {
+  title: string;
+  tag: string;
+  readMinutes: number;
+  author: string;
+  date: string;
+  byline?: string;
+  content: ReactNode;
+  related: RelatedLink[];
+};
+
+export function ArticleShell({
+  title,
+  tag,
+  readMinutes,
+  author,
+  date,
+  byline,
+  content,
+  related,
+}: Props) {
   return (
     <>
       <Nav />
@@ -25,22 +47,28 @@ export function ArticleShell({ article, related }: Props) {
 
           <header className="border-b border-border pb-8 mb-10">
             <div className="flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.3em] text-muted mb-4">
-              <span>{article.tag}</span>
+              <span>{tag}</span>
               <span aria-hidden>·</span>
-              <span>{article.readMinutes} min read</span>
+              <span>{readMinutes} min read</span>
+              {byline && (
+                <>
+                  <span aria-hidden>·</span>
+                  <span>{byline}</span>
+                </>
+              )}
             </div>
             <h1 className="font-[family-name:var(--font-pixel)] text-4xl md:text-5xl tracking-tight leading-[1.05]">
-              {article.title}
+              {title}
             </h1>
             <p className="mt-5 font-mono text-xs text-muted">
-              {article.author} ·{" "}
-              <time dateTime={article.date}>
-                {articleDateFormat.format(new Date(article.date))}
+              {author} ·{" "}
+              <time dateTime={date}>
+                {articleDateFormat.format(new Date(date))}
               </time>
             </p>
           </header>
 
-          <ArticleRenderer blocks={article.body} />
+          {content}
 
           {related.length > 0 && (
             <section className="mt-20 pt-10 border-t border-border">

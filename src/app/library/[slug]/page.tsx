@@ -1,16 +1,20 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { ArticleShell } from "@/components/ArticleShell";
+import { ArticleShell, type RelatedLink } from "@/components/ArticleShell";
+import { ArticleRenderer } from "@/components/ArticleRenderer";
+import { MarkdownArticle } from "@/components/MarkdownArticle";
 import {
-  articles,
-  getArticle,
-  getRelatedArticles,
-} from "@/lib/library";
+  getLibraryArticle,
+  getLibraryEntries,
+  curatedSlugs,
+} from "@/lib/library-server";
 
 type Params = { slug: string };
 
+// Curated articles are statically generated; published member articles render
+// on demand (dynamicParams defaults to true).
 export async function generateStaticParams(): Promise<Params[]> {
-  return articles.map((a) => ({ slug: a.slug }));
+  return curatedSlugs();
 }
 
 export async function generateMetadata({
@@ -19,12 +23,23 @@ export async function generateMetadata({
   params: Promise<Params>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const article = getArticle(slug);
-  if (!article) return { title: "Not found — Nuu" };
-  return {
-    title: `${article.title} — Nuu`,
-    description: article.excerpt,
-  };
+  const resolved = await getLibraryArticle(slug);
+  if (!resolved) return { title: "Not found — Nuu" };
+  const { title, excerpt } = resolved.article;
+  return { title: `${title} — Nuu`, description: excerpt };
+}
+
+async function relatedLinks(slug: string): Promise<RelatedLink[]> {
+  const entries = await getLibraryEntries();
+  return entries
+    .filter((e) => e.slug !== slug)
+    .slice(0, 2)
+    .map((e) => ({
+      slug: e.slug,
+      title: e.title,
+      tag: e.tag,
+      readMinutes: e.readMinutes,
+    }));
 }
 
 export default async function ArticlePage({
@@ -33,8 +48,36 @@ export default async function ArticlePage({
   params: Promise<Params>;
 }) {
   const { slug } = await params;
-  const article = getArticle(slug);
-  if (!article) notFound();
-  const related = getRelatedArticles(slug);
-  return <ArticleShell article={article} related={related} />;
+  const resolved = await getLibraryArticle(slug);
+  if (!resolved) notFound();
+  const related = await relatedLinks(slug);
+
+  if (resolved.kind === "curated") {
+    const a = resolved.article;
+    return (
+      <ArticleShell
+        title={a.title}
+        tag={a.tag}
+        readMinutes={a.readMinutes}
+        author={a.author}
+        date={a.date}
+        content={<ArticleRenderer blocks={a.body} />}
+        related={related}
+      />
+    );
+  }
+
+  const a = resolved.article;
+  return (
+    <ArticleShell
+      title={a.title}
+      tag={a.tag}
+      readMinutes={a.readMinutes}
+      author={a.author}
+      date={a.date}
+      byline="member contribution"
+      content={<MarkdownArticle body={a.bodyMd} />}
+      related={related}
+    />
+  );
 }

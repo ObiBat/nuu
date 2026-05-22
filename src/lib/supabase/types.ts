@@ -76,6 +76,38 @@ type PostInsert = {
   created_at?: string;
 };
 
+export type ContributionStatus = "draft" | "submitted" | "published" | "rejected";
+
+type ContributionRow = {
+  id: string;
+  author_id: string;
+  slug: string;
+  title: string;
+  excerpt: string;
+  tag: string;
+  body_md: string;
+  read_minutes: number;
+  status: ContributionStatus;
+  created_at: string;
+  updated_at: string;
+  published_at: string | null;
+};
+
+type ContributionInsert = {
+  id?: string;
+  author_id: string;
+  slug: string;
+  title: string;
+  excerpt?: string;
+  tag?: string;
+  body_md?: string;
+  read_minutes?: number;
+  status?: ContributionStatus;
+  published_at?: string | null;
+};
+
+type ContributionUpdate = Partial<Omit<ContributionInsert, "author_id">>;
+
 type ProfileInsert = {
   user_id: string;
   member_number?: number;
@@ -144,6 +176,19 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "posts_author_id_fkey";
+            columns: ["author_id"];
+            referencedRelation: "profiles";
+            referencedColumns: ["user_id"];
+          },
+        ];
+      };
+      contributions: {
+        Row: ContributionRow;
+        Insert: ContributionInsert;
+        Update: ContributionUpdate;
+        Relationships: [
+          {
+            foreignKeyName: "contributions_author_id_fkey";
             columns: ["author_id"];
             referencedRelation: "profiles";
             referencedColumns: ["user_id"];

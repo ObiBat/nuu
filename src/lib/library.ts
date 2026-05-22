@@ -26,6 +26,32 @@ export const articles: Article[] = [...allArticles].sort(
   (a, b) => b.date.localeCompare(a.date),
 );
 
+// A normalized listing item spanning both curated (TS) articles and published
+// member contributions (DB). Used by the library index, home grid, and search.
+export type LibraryEntry = {
+  slug: string;
+  title: string;
+  excerpt: string;
+  tag: string;
+  author: string;
+  date: string;
+  readMinutes: number;
+  source: "curated" | "member";
+};
+
+export function curatedEntries(): LibraryEntry[] {
+  return articles.map((a) => ({
+    slug: a.slug,
+    title: a.title,
+    excerpt: a.excerpt,
+    tag: a.tag,
+    author: a.author,
+    date: a.date,
+    readMinutes: a.readMinutes,
+    source: "curated",
+  }));
+}
+
 export function getArticle(slug: string): Article | undefined {
   return articles.find((a) => a.slug === slug);
 }

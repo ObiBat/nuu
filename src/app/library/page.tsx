@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
-import { articles, articleDateFormat } from "@/lib/library";
+import { articleDateFormat } from "@/lib/library";
+import { getLibraryEntries } from "@/lib/library-server";
 
 export const metadata: Metadata = {
   title: "Library — Nuu",
@@ -10,7 +11,8 @@ export const metadata: Metadata = {
     "Essays, primers, and guides from the Nuu community of Mongolian builders.",
 };
 
-export default function LibraryIndexPage() {
+export default async function LibraryIndexPage() {
+  const articles = await getLibraryEntries();
   return (
     <>
       <Nav />
@@ -31,9 +33,17 @@ export default function LibraryIndexPage() {
             <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted mb-3">
               read · build · share
             </p>
-            <h1 className="font-[family-name:var(--font-pixel)] text-4xl md:text-5xl tracking-tight">
-              Library
-            </h1>
+            <div className="flex items-start justify-between gap-4">
+              <h1 className="font-[family-name:var(--font-pixel)] text-4xl md:text-5xl tracking-tight">
+                Library
+              </h1>
+              <Link
+                href="/library/contribute"
+                className="shrink-0 mt-1 inline-flex items-center h-9 px-4 text-xs font-medium border border-border rounded-full hover:border-border-strong transition-colors"
+              >
+                Contribute →
+              </Link>
+            </div>
             <p className="mt-4 text-muted text-lg leading-relaxed">
               Essays, primers, and guides from the community.
             </p>
