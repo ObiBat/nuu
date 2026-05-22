@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { members, events } from "@/lib/content";
+import { members } from "@/lib/content";
 import { articles, articleDateFormat } from "@/lib/library";
 import { HeroLanyard } from "./HeroLanyard";
 import { SpritePortrait } from "./SpritePortrait";
@@ -22,6 +22,7 @@ import {
   type CharacterPalette,
 } from "@/lib/character";
 import { gameEvents } from "@/game/events";
+import { EventsBoard } from "./EventsBoard";
 import { useSupabaseUser } from "@/lib/supabase/use-user";
 import {
   characterFromProfile,
@@ -56,12 +57,6 @@ const VALID = new Set<PanelKey>([
   "badge",
   "customize",
 ]);
-
-const fmtDate = new Intl.DateTimeFormat("en-AU", {
-  day: "2-digit",
-  month: "short",
-  year: "numeric",
-});
 
 export function PanelHost() {
   const [panel, setPanel] = useState<PanelKey | null>(null);
@@ -226,30 +221,7 @@ function MembersPanel() {
 }
 
 function EventsPanel() {
-  return (
-    <ul className="divide-y divide-border border-y border-border">
-      {events.map((e) => (
-        <li
-          key={e.id}
-          className="grid grid-cols-[110px_1fr_auto] md:grid-cols-[130px_1fr_120px_auto] items-center gap-4 py-4"
-        >
-          <time className="font-mono text-xs text-muted" dateTime={e.date}>
-            {fmtDate.format(new Date(e.date))}
-          </time>
-          <span className="font-medium">{e.title}</span>
-          <span className="font-mono text-xs text-muted hidden md:inline">
-            {e.city}
-          </span>
-          <a
-            href={e.rsvpUrl}
-            className="inline-flex items-center h-8 px-4 text-xs font-medium border border-border rounded-full hover:border-border-strong transition-colors"
-          >
-            RSVP
-          </a>
-        </li>
-      ))}
-    </ul>
-  );
+  return <EventsBoard />;
 }
 
 function LibraryPanel() {

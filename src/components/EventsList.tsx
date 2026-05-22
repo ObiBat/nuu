@@ -1,12 +1,10 @@
-import { events } from "@/lib/content";
+import { fetchEventsServer } from "@/lib/supabase/events-server";
+import { EventsBoard } from "./EventsBoard";
 
-const fmt = new Intl.DateTimeFormat("en-AU", {
-  day: "2-digit",
-  month: "short",
-  year: "numeric",
-});
+export async function EventsList() {
+  const view = await fetchEventsServer();
+  const upcoming = view.events.filter((e) => !e.isPast).length;
 
-export function EventsList() {
   return (
     <section
       id="events-section"
@@ -23,31 +21,10 @@ export function EventsList() {
             </h2>
           </div>
           <span className="font-mono text-xs text-muted">
-            {events.length} upcoming
+            {upcoming} upcoming
           </span>
         </div>
-        <ul className="border-t border-border">
-          {events.map((e) => (
-            <li
-              key={e.id}
-              className="border-b border-border grid grid-cols-[100px_1fr_auto] md:grid-cols-[140px_1fr_120px_auto] items-center gap-4 py-5 hover:bg-border/20 transition-colors px-2 -mx-2 rounded"
-            >
-              <time className="font-mono text-xs text-muted" dateTime={e.date}>
-                {fmt.format(new Date(e.date))}
-              </time>
-              <span className="font-medium">{e.title}</span>
-              <span className="font-mono text-xs text-muted hidden md:inline">
-                {e.city}
-              </span>
-              <a
-                href={e.rsvpUrl}
-                className="inline-flex items-center h-8 px-4 text-xs font-medium border border-border rounded-full hover:border-border-strong transition-colors"
-              >
-                RSVP
-              </a>
-            </li>
-          ))}
-        </ul>
+        <EventsBoard initialData={view} />
       </div>
     </section>
   );
