@@ -3,9 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import { gameEvents } from "@/game/events";
 import { useSupabaseUser } from "@/lib/supabase/use-user";
-import { fetchMyProfile, characterFromProfile } from "@/lib/supabase/profile";
+import {
+  fetchMyProfile,
+  characterFromProfile,
+  presetFromProfile,
+} from "@/lib/supabase/profile";
 import type { PresenceIdentity } from "@/game/presence";
 import type { CharacterPalette } from "@/lib/character";
+import { savePreset, type NinjaPreset } from "@/lib/ninja-preset";
 
 // Resolves the signed-in member's identity and feeds it to the Phaser scene,
 // which owns the realtime channel. Renders the global chat input while playing.
@@ -35,6 +40,7 @@ export function PresenceLayer({ playing }: { playing: boolean }) {
         gameEvents.presenceIdentity(null);
         return;
       }
+      const preset = presetFromProfile(profile);
       const identity: PresenceIdentity = {
         userId: profile.user_id,
         slug: profile.slug,
@@ -42,9 +48,13 @@ export function PresenceLayer({ playing }: { playing: boolean }) {
         displayName:
           profile.display_name || `Member #${profile.member_number}`,
         palette: characterFromProfile(profile),
+        preset,
       };
       identityRef.current = identity;
       setSignedIn(true);
+      // Make the local player match the profile's saved character.
+      savePreset(preset);
+      gameEvents.presetUpdated(preset);
       gameEvents.presenceIdentity(identity);
     })();
 
@@ -67,8 +77,20 @@ export function PresenceLayer({ playing }: { playing: boolean }) {
       identityRef.current = next;
       gameEvents.presenceIdentity(next);
     };
+    const onPreset = (e: Event) => {
+      const preset = (e as CustomEvent<NinjaPreset>).detail;
+      const cur = identityRef.current;
+      if (!cur || cur.preset === preset) return;
+      const next: PresenceIdentity = { ...cur, preset };
+      identityRef.current = next;
+      gameEvents.presenceIdentity(next);
+    };
     gameEvents.addEventListener("character:update", onChar);
-    return () => gameEvents.removeEventListener("character:update", onChar);
+    gameEvents.addEventListener("preset:update", onPreset);
+    return () => {
+      gameEvents.removeEventListener("character:update", onChar);
+      gameEvents.removeEventListener("preset:update", onPreset);
+    };
   }, []);
 
   if (!playing || !signedIn) return null;

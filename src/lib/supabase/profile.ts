@@ -1,5 +1,9 @@
 import { createSupabaseBrowser } from "./client";
 import { DEFAULT_CHARACTER, type CharacterPalette } from "@/lib/character";
+import {
+  NINJA_PRESETS,
+  type NinjaPreset,
+} from "@/lib/ninja-preset";
 
 export type ProfileRow = {
   user_id: string;
@@ -10,10 +14,30 @@ export type ProfileRow = {
   bio: string;
   slug: string | null;
   character: CharacterPalette;
+  character_preset: string;
   avatar_url: string | null;
   created_at: string;
   updated_at: string;
 };
+
+export function presetFromProfile(profile: ProfileRow | null): NinjaPreset {
+  const p = profile?.character_preset;
+  return p && (NINJA_PRESETS as readonly string[]).includes(p)
+    ? (p as NinjaPreset)
+    : "Boy";
+}
+
+export async function saveMyPreset(preset: NinjaPreset) {
+  const supabase = createSupabaseBrowser();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return { ok: false as const, reason: "not_signed_in" };
+  const { error } = await supabase
+    .from("profiles")
+    .update({ character_preset: preset })
+    .eq("user_id", auth.user.id);
+  if (error) return { ok: false as const, reason: error.message };
+  return { ok: true as const };
+}
 
 function isEmptyCharacter(c: unknown): boolean {
   if (!c || typeof c !== "object") return true;

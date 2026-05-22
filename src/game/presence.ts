@@ -10,6 +10,7 @@ export type PresenceIdentity = {
   memberNumber: number;
   displayName: string;
   palette: CharacterPalette;
+  preset: string;
 };
 
 export type RemoteMember = PresenceIdentity & {

@@ -20,6 +20,7 @@ type ProfileRow = {
   links: ProfileLinks;
   avatar_url: string | null;
   is_admin: boolean;
+  character_preset: string;
   created_at: string;
   updated_at: string;
 };
@@ -134,6 +135,7 @@ type ProfileInsert = {
   links?: ProfileLinks;
   avatar_url?: string | null;
   is_admin?: boolean;
+  character_preset?: string;
   created_at?: string;
   updated_at?: string;
 };
@@ -149,6 +151,8 @@ type ProfileUpdate = {
   character?: CharacterPalette;
   links?: ProfileLinks;
   avatar_url?: string | null;
+  is_admin?: boolean;
+  character_preset?: string;
   updated_at?: string;
 };
 

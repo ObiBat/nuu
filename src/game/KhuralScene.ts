@@ -494,11 +494,14 @@ export class KhuralScene extends Phaser.Scene {
   };
 
   private addRemote(m: RemoteMember) {
-    // Pick a stable NA preset per member from their id (real per-member look
-    // comes when presence carries the chosen preset).
-    let h = 0;
-    for (const c of m.userId) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-    const preset = NINJA_PRESETS[h % NINJA_PRESETS.length];
+    // Use the member's chosen preset (broadcast via presence); fall back to a
+    // stable per-id pick if missing/invalid.
+    let preset = m.preset as NinjaPreset;
+    if (!NINJA_PRESETS.includes(preset)) {
+      let h = 0;
+      for (const c of m.userId) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+      preset = NINJA_PRESETS[h % NINJA_PRESETS.length];
+    }
     registerNinjaAnims(this, preset);
 
     const sprite = this.add

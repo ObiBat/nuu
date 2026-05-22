@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { gameEvents } from "@/game/events";
+import { saveMyPreset } from "@/lib/supabase/profile";
 import {
   NINJA_PRESETS,
   PRESET_LABELS,
@@ -19,7 +20,8 @@ export function CharacterPicker() {
   const choose = (p: NinjaPreset) => {
     setSelected(p);
     savePreset(p);
-    gameEvents.presetUpdated(p);
+    gameEvents.presetUpdated(p); // live-swap + PresenceLayer re-broadcasts
+    void saveMyPreset(p); // persist to profile (no-op if signed out)
   };
 
   return (
