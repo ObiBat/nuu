@@ -22,7 +22,6 @@ import {
   PROP_ROCK_SPRITE,
   PROP_ROCK_LEGEND,
 } from "./sprites";
-import { loadCharacter, type CharacterPalette } from "@/lib/character";
 import {
   KhuralPresence,
   type Facing,
@@ -36,14 +35,23 @@ import {
   vectorToFacing,
   type Dir,
 } from "./characters";
-
-const USER_PREFIX = "user";
+import {
+  preloadLpc,
+  registerLpcAnims,
+  lpcTextureKey,
+  lpcWalkAnim,
+  lpcIdleFrame,
+  vectorToDir4,
+  type LpcPreset,
+  type Dir4,
+} from "./lpc";
 
 const WORLD_W = 1000;
 const WORLD_H = 580;
 const PLAYER_SPEED = 200;
 const INTERACT_RADIUS = 92;
 const SPRITE_SCALE = 2.8;
+const LPC_SCALE = 0.95; // 64px LPC frames → ~character height in world units
 
 // Axis-aligned collider rectangle in world space (footprint of a solid object).
 type Collider = { x: number; y: number; w: number; h: number };
@@ -248,7 +256,9 @@ type RemotePlayerState = {
 };
 
 export class KhuralScene extends Phaser.Scene {
-  private player!: Phaser.GameObjects.Image;
+  private player!: Phaser.GameObjects.Sprite;
+  private playerPreset: LpcPreset = "wanderer";
+  private playerDir4: Dir4 = "down";
   private playerBaseY = 0;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd!: {
@@ -263,11 +273,6 @@ export class KhuralScene extends Phaser.Scene {
   private currentTarget: string | null = null;
   private dialogueOpen = false;
   private worldPaused = true;
-  private walkPhase = 0;
-  private playerWalkFrame = 0;
-  private playerWalkTimer = 0;
-  private playerDir: Dir = "down";
-  private playerFlip = false;
   private colliders: Collider[] = [];
 
   private presence: KhuralPresence | null = null;
@@ -283,6 +288,10 @@ export class KhuralScene extends Phaser.Scene {
 
   constructor() {
     super({ key: "KhuralScene" });
+  }
+
+  preload() {
+    preloadLpc(this);
   }
 
   create() {
@@ -352,20 +361,9 @@ export class KhuralScene extends Phaser.Scene {
   private onWorldResume = () => {
     this.worldPaused = false;
   };
-  private onCharacterUpdate = (e: Event) => {
-    const ce = e as CustomEvent<CharacterPalette>;
-    this.rebuildUserCharacter(ce.detail);
-    if (this.player) {
-      this.player.setTexture(
-        characterTextureKey(USER_PREFIX, this.playerDir, 0),
-      );
-      this.player.setFlipX(this.playerFlip);
-    }
-  };
-
-  private rebuildUserCharacter(palette: CharacterPalette) {
-    registerCharacterTextures(this, USER_PREFIX, palette);
-  }
+  // Player look is an LPC preset now; the hex-palette customizer is adapted to
+  // preset selection in a follow-up, so this is a no-op for the moment.
+  private onCharacterUpdate = (_e: Event) => {};
 
   // ---- DOM input focus guards ------------------------------------------
   // While a text field anywhere on the page is focused, fully suspend Phaser
@@ -689,7 +687,6 @@ export class KhuralScene extends Phaser.Scene {
     Object.entries(CHAR_SPRITES).forEach(([key, def]) => {
       createPixelTexture(this, `char-${kebab(key)}`, def.rows, def.legend);
     });
-    this.rebuildUserCharacter(loadCharacter());
     createPixelTexture(this, "poi-notice-board", POI_NOTICE_SPRITE, POI_NOTICE_LEGEND);
     createPixelTexture(this, "poi-pavilion", POI_PAVILION_SPRITE, POI_PAVILION_LEGEND);
     createPixelTexture(this, "poi-bookshelf", POI_BOOKSHELF_SPRITE, POI_BOOKSHELF_LEGEND);
@@ -982,10 +979,12 @@ export class KhuralScene extends Phaser.Scene {
   private playerIndicator!: Phaser.GameObjects.Container;
 
   private spawnPlayer() {
+    registerLpcAnims(this, this.playerPreset);
     this.player = this.add
-      .image(SPAWN.x, SPAWN.y, characterTextureKey(USER_PREFIX, "down", 0))
-      .setScale(SPRITE_SCALE)
-      .setOrigin(0.5, 0.85)
+      .sprite(SPAWN.x, SPAWN.y, lpcTextureKey(this.playerPreset))
+      .setScale(LPC_SCALE)
+      .setOrigin(0.5, 0.92)
+      .setFrame(lpcIdleFrame("down"))
       .setDepth(SPAWN.y + 1);
     this.playerBaseY = SPAWN.y;
 
@@ -1110,36 +1109,15 @@ export class KhuralScene extends Phaser.Scene {
       const tryY = Phaser.Math.Clamp(this.playerBaseY + ny, 24, WORLD_H - 24);
       if (!this.collidesAt(this.player.x, tryY)) this.playerBaseY = tryY;
 
-      const facing = vectorToFacing(dx, dy);
-      this.playerDir = facing.dir;
-      this.playerFlip = facing.flip;
-      this.player.setFlipX(facing.flip);
-
-      this.walkPhase += delta * 0.018;
-      this.playerWalkTimer += delta;
-      if (this.playerWalkTimer > 160) {
-        this.playerWalkTimer = 0;
-        this.playerWalkFrame = (this.playerWalkFrame + 1) % 2;
-      }
-      this.player.setTexture(
-        characterTextureKey(
-          USER_PREFIX,
-          this.playerDir,
-          this.playerWalkFrame as 0 | 1,
-        ),
-      );
+      this.playerDir4 = vectorToDir4(dx, dy);
+      this.player.play(lpcWalkAnim(this.playerPreset, this.playerDir4), true);
     } else {
-      this.walkPhase += delta * 0.004;
-      this.playerWalkTimer = 0;
-      if (this.playerWalkFrame !== 0) {
-        this.playerWalkFrame = 0;
-      }
-      this.player.setTexture(
-        characterTextureKey(USER_PREFIX, this.playerDir, 0),
-      );
+      this.player.stop();
+      this.player.setFrame(lpcIdleFrame(this.playerDir4));
     }
 
-    const bob = Math.sin(this.walkPhase) * (moving ? 1.5 : 0.5);
+    // LPC walk frames already convey stride; keep a tiny idle bob only.
+    const bob = moving ? 0 : Math.sin(time * 0.004) * 0.6;
     this.player.y = this.playerBaseY + bob;
     this.player.setDepth(this.playerBaseY + 1);
 
