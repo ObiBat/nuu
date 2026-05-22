@@ -11,12 +11,16 @@ Per-layer authors and licenses:
 | `body/bodies/female/light` | Benjamin K. Smith (BenCreating), bluecarrot16, TheraHedwig, Evert, MuffinElZangano, Durrani, Pierre Vigier (pvigier), ElizaWy, Matthew Krohn (makrohn), Johannes Sjölund (wulax), Stephen Challener (Redshrike) | OGA-BY 3.0, CC-BY-SA 3.0, GPL 3.0 |
 | `body/bodies/male/bronze` | bluecarrot16, Benjamin K. Smith (BenCreating), Evert, Eliza Wyatt (ElizaWy), TheraHedwig, MuffinElZangano, Durrani, Johannes Sj?lund (wulax), Stephen Challener (Redshrike) | CC-BY-SA 3.0, GPL 3.0 |
 | `body/bodies/male/light` | bluecarrot16, Benjamin K. Smith (BenCreating), Evert, Eliza Wyatt (ElizaWy), TheraHedwig, MuffinElZangano, Durrani, Johannes Sj?lund (wulax), Stephen Challener (Redshrike) | CC-BY-SA 3.0, GPL 3.0 |
+| `eyes/human/adult/blue` | JaidynReiman, Matthew Krohn (makrohn), Stephen Challener (Redshrike) | OGA-BY 3.0, CC-BY-SA 3.0, GPL 3.0 |
+| `eyes/human/adult/brown` | JaidynReiman, Matthew Krohn (makrohn), Stephen Challener (Redshrike) | OGA-BY 3.0, CC-BY-SA 3.0, GPL 3.0 |
 | `feet/shoes/female/black` | Joe White, Johannes Sjölund (wulax) | OGA-BY 3.0, CC-BY-SA 3.0, GPL 3.0 |
 | `feet/shoes/male/black` | bluecarrot16, Johannes Sjölund (wulax) | OGA-BY 3.0, CC-BY-SA 3.0, GPL 3.0 |
 | `feet/shoes/male/brown` | bluecarrot16, Johannes Sjölund (wulax) | OGA-BY 3.0, CC-BY-SA 3.0, GPL 3.0 |
 | `hair/messy1/male/black` | Manuel Riecke (MrBeast) | CC-BY-SA 3.0, GPL 3.0 |
 | `hair/plain/male/black` | Manuel Riecke (MrBeast), Joe White | CC-BY-SA 3.0, GPL 3.0 |
 | `hair/ponytail/female/raven` | Manuel Riecke (MrBeast) | CC-BY-SA 3.0, GPL 3.0 |
+| `head/nose/button/adult/bronze` | Thane Brimhall (pennomi), Matthew Krohn (makrohn) | GPL 3.0, CC-BY-SA 3.0 |
+| `head/nose/button/adult/light` | Thane Brimhall (pennomi), Matthew Krohn (makrohn) | GPL 3.0, CC-BY-SA 3.0 |
 | `legs/pants/female/brown` | bluecarrot16, JaidynReiman, ElizaWy, Joe White, Matthew Krohn (makrohn), Johannes Sjölund (wulax) | OGA-BY 3.0, GPL 3.0, CC-BY-SA 3.0 |
 | `legs/pants/male/blue` | bluecarrot16, JaidynReiman, ElizaWy, Matthew Krohn (makrohn), Johannes Sjölund (wulax) | OGA-BY 3.0, GPL 3.0, CC-BY-SA 3.0 |
 | `legs/pants/male/charcoal` | bluecarrot16, JaidynReiman, ElizaWy, Matthew Krohn (makrohn), Johannes Sjölund (wulax) | OGA-BY 3.0, GPL 3.0, CC-BY-SA 3.0 |

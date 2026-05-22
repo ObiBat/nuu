@@ -31,6 +31,8 @@ WALK_COLS = 9
 PRESETS = {
     "wanderer": [
         "body/bodies/male/light",
+        "eyes/human/adult/brown",
+        "head/nose/button/adult/light",
         "legs/pants/male/charcoal",
         "feet/shoes/male/brown",
         "torso/clothes/longsleeve/longsleeve/male/forest",
@@ -38,6 +40,8 @@ PRESETS = {
     ],
     "nomad": [
         "body/bodies/female/light",
+        "eyes/human/adult/blue",
+        "head/nose/button/adult/light",
         "legs/pants/female/brown",
         "feet/shoes/female/black",
         "torso/clothes/longsleeve/longsleeve/female/bluegray",
@@ -45,6 +49,8 @@ PRESETS = {
     ],
     "steppe": [
         "body/bodies/male/bronze",
+        "eyes/human/adult/brown",
+        "head/nose/button/adult/bronze",
         "legs/pants/male/blue",
         "feet/shoes/male/black",
         "torso/clothes/longsleeve/longsleeve/male/maroon",
