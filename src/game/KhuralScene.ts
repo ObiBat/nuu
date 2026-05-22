@@ -288,8 +288,15 @@ export class KhuralScene extends Phaser.Scene {
     this.spawnPlayer();
 
     this.cursors = this.input.keyboard!.createCursorKeys();
-    this.wasd = this.input.keyboard!.addKeys("W,A,S,D") as typeof this.wasd;
-    this.interactKey = this.input.keyboard!.addKey("E");
+    // enableCapture=false: letter keys never need preventDefault (they don't
+    // scroll the page) and capturing them would swallow the same letters when
+    // a DOM text field — e.g. the sign-in email input — is focused.
+    this.wasd = this.input.keyboard!.addKeys(
+      "W,A,S,D",
+      false,
+    ) as typeof this.wasd;
+    this.interactKey = this.input.keyboard!.addKey("E", false);
+    this.bindFocusGuards();
 
     this.fitCamera(this.scale.gameSize);
     this.scale.on("resize", this.fitCamera, this);
@@ -317,6 +324,7 @@ export class KhuralScene extends Phaser.Scene {
       gameEvents.removeEventListener("chat:typing", this.onTyping);
       this.presence?.leave();
       this.presence = null;
+      this.unbindFocusGuards();
       this.scale.off("resize", this.fitCamera, this);
     });
 
@@ -360,6 +368,42 @@ export class KhuralScene extends Phaser.Scene {
       buildCharacterRows(true, palette.body),
       legend,
     );
+  }
+
+  // ---- DOM input focus guards ------------------------------------------
+  // While a text field anywhere on the page is focused, fully suspend Phaser
+  // keyboard handling and drop all key captures, so typing reaches the input
+  // and the player never reacts to keystrokes meant for a form.
+
+  private bindFocusGuards() {
+    document.addEventListener("focusin", this.onDomFocusIn);
+    document.addEventListener("focusout", this.onDomFocusOut);
+    // Catch the case where a field is already focused at scene start.
+    if (isEditableTarget(document.activeElement)) this.setKeyboardActive(false);
+  }
+
+  private unbindFocusGuards() {
+    document.removeEventListener("focusin", this.onDomFocusIn);
+    document.removeEventListener("focusout", this.onDomFocusOut);
+  }
+
+  private onDomFocusIn = (e: FocusEvent) => {
+    if (isEditableTarget(e.target)) this.setKeyboardActive(false);
+  };
+
+  private onDomFocusOut = (e: FocusEvent) => {
+    if (isEditableTarget(e.target)) this.setKeyboardActive(true);
+  };
+
+  private setKeyboardActive(active: boolean) {
+    const kb = this.input.keyboard;
+    if (!kb) return;
+    kb.enabled = active;
+    if (active) {
+      kb.addCapture("UP,DOWN,LEFT,RIGHT");
+    } else {
+      kb.clearCaptures();
+    }
   }
 
   // ---- Realtime presence ----------------------------------------------
@@ -1145,4 +1189,15 @@ export class KhuralScene extends Phaser.Scene {
 
 function kebab(str: string): string {
   return str.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
+}
+
+function isEditableTarget(target: EventTarget | null): boolean {
+  const el = target as HTMLElement | null;
+  if (!el || !el.tagName) return false;
+  return (
+    el.tagName === "INPUT" ||
+    el.tagName === "TEXTAREA" ||
+    el.tagName === "SELECT" ||
+    el.isContentEditable
+  );
 }
