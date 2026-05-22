@@ -18,14 +18,16 @@ Founder: **Obi Batbileg** ([obicreative.dev](https://obicreative.dev) · [craeft
 |---|---|
 | **v0.1 — World** | ✅ shipped |
 | **v0.2 — Public** | ✅ deployed to Vercel + GitHub + CI/CD |
-| **v0.3 — Identity** | ✅ shipped (magic-link auth, profiles, /members, customize→DB) — 0 real signups yet |
+| **v0.3 — Identity** | ✅ shipped (magic-link auth, profiles, /members, customize→DB) |
 | **v0.4 — Presence** | 🚀 deployed (Supabase Realtime: live members walk khural + global chat) — **live-unverified**: needs a 2-session sign-in test |
-| v0.5–v0.9 | future |
+| **v0.5 — Content** | ✅ shipped (Events board+RSVP, Notice Board, Library contributions, Newsletter) |
+| **v0.6 — World redesign** | 🚀 deployed (Ninja Adventure CC0 art: NA characters + facesets, Sydney harbour, NA buildings/props). See "v0.6 redesign" below. |
 
-Live: **https://nuu.today** (DNS resolved, A=76.76.21.21, HTTP 200) and **https://nuu-gules.vercel.app**.
+Live: **https://nuu.today** and **https://nuu-gules.vercel.app**.
 Repo: **https://github.com/ObiBat/nuu** (public, MIT).
-Vercel project: `obis-projects-ce997674/nuu` — latest production deployment READY (commit `9f7f610`).
-Supabase project ref: `lbdwwhhrvefcqeulbbla` (Sydney). Migrations `0001_init` + `0002_harden_functions` applied. `public.profiles` live, RLS on, 0 rows.
+Vercel project: `obis-projects-ce997674/nuu` (team `team_t5LhV9zZjfskV6usC9oC4MnQ`) — auto-deploys on push to `main`.
+Supabase project ref: `lbdwwhhrvefcqeulbbla` (Sydney). Migrations `0001`–`0008` applied (profiles, hardening, events+RSVPs+is_admin, notice-board posts, library contributions, newsletter). Tables: `profiles`, `events`, `event_rsvps`, `posts`, `contributions`, `newsletter_subscribers` — all RLS-on, ~0 real rows.
+**Admin login email = `admin@nuu.today`** (auto-promoted to `is_admin` on signup by `handle_new_user`).
 
 ---
 
@@ -37,10 +39,11 @@ Supabase project ref: `lbdwwhhrvefcqeulbbla` (Sydney). Migrations `0001_init` + 
 | Styling | Tailwind v4 (CSS vars in `src/app/globals.css`) |
 | Fonts | Geist Sans / Mono / Pixel (Square + Triangle) via `geist` npm |
 | Game engine | Phaser 4 (lazy-loaded inside `GameCanvas.tsx`) |
+| World art | **Ninja Adventure (pixel-boy & AAA), CC0** — tiles + characters + facesets + buildings. Fetched via `scripts/build_ninja.py` into `public/art/ninja/`. Markdown via `react-markdown`. |
 | Drag | `@use-gesture/react` |
 | Cmd-K | `cmdk` |
 | OG images | `@vercel/og` (Satori) — TTFs pre-converted from Geist woff2 |
-| Auth + DB | Supabase (`@supabase/ssr`) — scaffolded, wiring in progress |
+| Auth + DB | Supabase (`@supabase/ssr`) — wired: magic-link auth, profiles, events, posts, contributions, newsletter, Realtime presence |
 | Analytics | `@vercel/analytics` + `@vercel/speed-insights` |
 | Hosting | Vercel (Fluid Compute, Node 24) |
 
@@ -239,16 +242,54 @@ his profile shows.
 
 ---
 
-## Roadmap (post v0.4)
+## v0.6 redesign — Ninja Adventure art + Sydney harbour (deployed 2026-05-22)
 
-- ~~**v0.4** — Supabase Realtime: see other members walk the khural live, in-world chat~~ 🚀 deployed (live-unverified)
-- **v0.5 — Content & contribution (NEXT)** — Events CRUD, Notice Board posts, library contributions, newsletter
-- **v0.6** — Collisions, mobile touch, 4-direction sprites + walk frames, multi-map (garden / arcade), day/night
-- **v0.7** — World-class pixel art (Kenney Tiny Town pack or commissioned)
-- **v0.8** — Achievements, inventory, playable shatar mini-game at Arcade POI
+A full art overhaul. The old hand-coded string-grid sprites AND a brief
+LPC-art detour were both retired in favour of the **Ninja Adventure** pack.
+
+**Asset pipeline** — `scripts/build_ninja.py` fetches from a CC0 mirror
+(`MarioLDD/Kuroshiro-adventure`, the full NA pack) into `public/art/ninja/`:
+- `fill/{grass,water,sand}.png` — seamless ground tiles
+- `obj/{tree,bush,rock,house,boat}.png` — objects sliced from packed tilesets
+  (tree auto-located canopy-over-trunk; house = a complete unit from
+  TilesetHouse rows ~11–14; boat from Backgrounds/Vehicles)
+- `char/<Name>/{Walk,Idle,Faceset}.png` — 8 human presets (Walk = 64×64,
+  4 cols = down/up/left/right × 4 frames; Idle = 4 frames; Faceset = 38×38)
+
+**Game (`src/game/`)**
+- `ninja.ts` — NA character module: preload, `registerNinjaAnims` (4-dir walk),
+  idle frames, dir mapping. Preset list/type re-exported from `@/lib/ninja-preset`.
+- `KhuralScene.ts` — rebuilt: NA tiled ground (grass field + **Sydney harbour**
+  water band + sand beach along the top + central sand plaza + bobbing boats),
+  camera-follow, AABB collisions (incl. impassable harbour), NA characters for
+  player/ambient(wandering)/Obi/remotes, NINJA_SCALE.
+- **Legacy/unused now**: `lpc.ts`, `characters.ts`, `sprites.ts` POI/prop
+  sprites, `public/art/{characters,objects,tiles}/` (LPC). `prop-lamp` +
+  `poi-portal` procedural sprites still used.
+
+**Customizer = character picker** — `CharacterPicker.tsx` (in the Customize
+panel) shows the 8 facesets; selecting one live-swaps the player
+(`gameEvents.presetUpdated` → scene) and persists to localStorage
+(`@/lib/ninja-preset`). NOT yet synced to profile/presence (others don't see
+your pick yet).
+
+**Sydney POI names** (in-world labels; panels/CTAs unchanged):
+About→**The Rocks**, Salon/customize→**Bondi**, Events→**Circular Quay**,
+Library→**State Library**, Discord portal→**Manly Ferry**. Labels + dialogue
+in `content/dialogue.json`.
+
+**Known holdouts**: About POI is still the LPC signpost; harbour edges are
+rectangular bands (no autotile transitions); NA TilesetHouse/Nature are packed
+(future buildings should be assembled from a Tiled map). Founder NPC = NA "Noble".
+
+## Roadmap (post v0.6)
+
+- **Presence/profile sync of character pick** — so other members see your look
+- **POI buildings polish** — proper NA structures via a Tiled map; Sydney signpost
+- **v0.7** — atmosphere: day/night, particles, animated water ripples; mobile touch
+- **v0.8** — Achievements, inventory, playable shatar mini-game
 - **v0.9** — Ecosystem (MAS-NSW, Bayan Mongol, sponsor slots)
-
-Critical path: ~~v0.3 (identity)~~ ✅ → ~~v0.4 (presence)~~ 🚀 → **v0.5 (content) — NEXT** → the rest is iteration.
+- Carried: finish the **v0.4 2-session presence verification**; wire newsletter sending
 
 ### v0.5 scope (tee-up)
 
@@ -291,3 +332,11 @@ The theme is **members create, not just exist** — give the community things to
   sprite rendering, and bubbles. React only feeds identity + chat in via
   `gameEvents`. Presence = identity + last position; broadcast = movement
   + chat. Signed-in members only; global (not proximity) chat.
+- **World art = Ninja Adventure (CC0)**: chosen after LPC's faces looked
+  bad zoomed in. NA has clear cute faces + 38px portrait facesets, water/
+  beach for the harbour, 4-dir characters. Obi loved it. Don't go back to
+  LPC. Public repo = redistributable art only (CC0 ideal; CC-BY w/ credits
+  ok) — packs that forbid redistribution (Cozy People, Sprout Lands, LimeZu,
+  Pipoya) are OUT. Characters are pre-made presets (pick a look), not
+  layer-recolored. Keep the world zoomed-out so small sprites read.
+- **Theme = Sydney harbour khural**: water + beach + boats; Sydney-named POIs.

@@ -1,16 +1,16 @@
 {
   "pois": {
     "notice-board": {
-      "title": "Notice Board",
+      "title": "The Rocks",
       "subtitle": "About Nuu",
       "lines": [
         "Nuu (нүү) — the verb shatar players use when they make their move.",
-        "We are a community of Mongolian builders, breakers, and shippers — scattered across the world, gathered here.",
+        "We are a community of Mongolian builders, breakers, and shippers — scattered across the world, gathered here by the harbour.",
         "Drop your move on the Discord. Then make the next one."
       ]
     },
     "pavilion": {
-      "title": "Pavilion",
+      "title": "Circular Quay",
       "subtitle": "Upcoming events",
       "lines": [
         "Nuu · Opening Move — Sydney, 12 Jun.",
@@ -20,31 +20,31 @@
       ]
     },
     "bookshelf": {
-      "title": "Bookshelf",
+      "title": "State Library",
       "subtitle": "Library",
       "lines": [
-        "Four pieces on the shelf — a shatar primer, diaspora notes, an avatar guide, and a design memo about why this world exists.",
-        "More coming. If you have something to add, drop a draft in Discord."
+        "Essays and primers on the shelf — a shatar guide, diaspora notes, and more from the community.",
+        "Members can write their own. Submit a draft and an editor will publish it."
       ],
       "cta": { "label": "Open the library →", "href": "/library" }
     },
     "portal": {
-      "title": "Portal",
-      "subtitle": "Discord",
+      "title": "Manly Ferry",
+      "subtitle": "to Discord",
       "lines": [
-        "Step through to join the Discord.",
+        "Catch the ferry across to the Discord.",
         "First move you make: introduce yourself in #intros."
       ],
       "cta": { "label": "Join the Discord →", "href": "https://discord.gg/nuu" }
     },
     "salon": {
-      "title": "Salon",
-      "subtitle": "Mirror · clothes · style",
+      "title": "Bondi",
+      "subtitle": "Your character",
       "lines": [
-        "Welcome. Try a new look — change skin, hair, fit, or body.",
-        "Stored locally for now. Syncs to your profile when Discord login lands."
+        "Pick your character — choose a look you like from the lineup.",
+        "Saved on this device for now."
       ],
-      "cta": { "label": "Customize →", "href": "#customize" }
+      "cta": { "label": "Choose your character →", "href": "#customize" }
     }
   }
 }
