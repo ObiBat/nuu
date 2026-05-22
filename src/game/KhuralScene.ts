@@ -3,7 +3,6 @@ import { gameEvents } from "./events";
 import {
   createPixelTexture,
   CHAR_SPRITES,
-  buildCharacterRows,
   POI_NOTICE_SPRITE,
   POI_NOTICE_LEGEND,
   POI_PAVILION_SPRITE,
@@ -23,26 +22,33 @@ import {
   PROP_ROCK_SPRITE,
   PROP_ROCK_LEGEND,
 } from "./sprites";
-import {
-  loadCharacter,
-  paletteToLegend,
-  type CharacterPalette,
-} from "@/lib/character";
+import { loadCharacter, type CharacterPalette } from "@/lib/character";
 import {
   KhuralPresence,
   type Facing,
   type PresenceIdentity,
   type RemoteMember,
 } from "./presence";
+import {
+  registerCharacterTextures,
+  removeCharacterTextures,
+  characterTextureKey,
+  vectorToFacing,
+  type Dir,
+} from "./characters";
 
-const USER_IDLE_KEY = "char-user-idle";
-const USER_WALK_KEY = "char-user-walk";
+const USER_PREFIX = "user";
 
 const WORLD_W = 1000;
 const WORLD_H = 580;
 const PLAYER_SPEED = 200;
 const INTERACT_RADIUS = 92;
 const SPRITE_SCALE = 2.8;
+
+// Axis-aligned collider rectangle in world space (footprint of a solid object).
+type Collider = { x: number; y: number; w: number; h: number };
+const PLAYER_HALF_W = 9;
+const PLAYER_FOOT_H = 7;
 
 const BG_COLOR = 0x6a9050;
 const GRASS_LIGHT = 0x7ab050;
@@ -227,8 +233,8 @@ type RemotePlayerState = {
   id: string;
   sprite: Phaser.GameObjects.Image;
   nameTag: Phaser.GameObjects.Container;
-  idleKey: string;
-  walkKey: string;
+  prefix: string;
+  dir: Dir;
   x: number;
   baseY: number;
   targetX: number;
@@ -260,6 +266,9 @@ export class KhuralScene extends Phaser.Scene {
   private walkPhase = 0;
   private playerWalkFrame = 0;
   private playerWalkTimer = 0;
+  private playerDir: Dir = "down";
+  private playerFlip = false;
+  private colliders: Collider[] = [];
 
   private presence: KhuralPresence | null = null;
   private identity: PresenceIdentity | null = null;
@@ -299,6 +308,8 @@ export class KhuralScene extends Phaser.Scene {
     this.bindFocusGuards();
 
     this.fitCamera(this.scale.gameSize);
+    this.cameras.main.startFollow(this.player, true, 0.12, 0.12);
+    this.cameras.main.setDeadzone(40, 30);
     this.scale.on("resize", this.fitCamera, this);
 
     gameEvents.addEventListener("dialogue:close", this.onDialogueClose);
@@ -345,29 +356,15 @@ export class KhuralScene extends Phaser.Scene {
     const ce = e as CustomEvent<CharacterPalette>;
     this.rebuildUserCharacter(ce.detail);
     if (this.player) {
-      this.player.setTexture(USER_IDLE_KEY);
-      this.player.setFlipX(this.player.flipX);
+      this.player.setTexture(
+        characterTextureKey(USER_PREFIX, this.playerDir, 0),
+      );
+      this.player.setFlipX(this.playerFlip);
     }
   };
 
   private rebuildUserCharacter(palette: CharacterPalette) {
-    const legend = paletteToLegend(palette);
-    if (this.textures.exists(USER_IDLE_KEY))
-      this.textures.remove(USER_IDLE_KEY);
-    if (this.textures.exists(USER_WALK_KEY))
-      this.textures.remove(USER_WALK_KEY);
-    createPixelTexture(
-      this,
-      USER_IDLE_KEY,
-      buildCharacterRows(false, palette.body),
-      legend,
-    );
-    createPixelTexture(
-      this,
-      USER_WALK_KEY,
-      buildCharacterRows(true, palette.body),
-      legend,
-    );
+    registerCharacterTextures(this, USER_PREFIX, palette);
   }
 
   // ---- DOM input focus guards ------------------------------------------
@@ -447,41 +444,25 @@ export class KhuralScene extends Phaser.Scene {
   };
 
   private addRemote(m: RemoteMember) {
-    const idleKey = `remote-${m.userId}-idle`;
-    const walkKey = `remote-${m.userId}-walk`;
-    const legend = paletteToLegend(m.palette);
-    createPixelTexture(
-      this,
-      idleKey,
-      buildCharacterRows(false, m.palette.body),
-      legend,
-    );
-    createPixelTexture(
-      this,
-      walkKey,
-      buildCharacterRows(true, m.palette.body),
-      legend,
-    );
+    const prefix = `remote-${m.userId}`;
+    registerCharacterTextures(this, prefix, m.palette);
 
     const sprite = this.add
-      .image(m.x, m.y, idleKey)
+      .image(m.x, m.y, characterTextureKey(prefix, "side", 0))
       .setScale(SPRITE_SCALE)
       .setOrigin(0.5, 0.85)
       .setFlipX(m.facing < 0)
       .setDepth(m.y);
 
-    const nameTag = this.buildNameTag(
-      m.displayName,
-      m.memberNumber,
-    );
+    const nameTag = this.buildNameTag(m.displayName, m.memberNumber);
     nameTag.setPosition(m.x, m.y - 52).setDepth(9000);
 
     this.remote.set(m.userId, {
       id: m.userId,
       sprite,
       nameTag,
-      idleKey,
-      walkKey,
+      prefix,
+      dir: "side",
       x: m.x,
       baseY: m.y,
       targetX: m.x,
@@ -501,8 +482,7 @@ export class KhuralScene extends Phaser.Scene {
     st.bubble?.destroy();
     st.nameTag.destroy();
     st.sprite.destroy();
-    if (this.textures.exists(st.idleKey)) this.textures.remove(st.idleKey);
-    if (this.textures.exists(st.walkKey)) this.textures.remove(st.walkKey);
+    removeCharacterTextures(this, st.prefix);
     this.remote.delete(id);
   }
 
@@ -635,22 +615,25 @@ export class KhuralScene extends Phaser.Scene {
       st.baseY += dy * 0.2;
 
       if (moving) {
+        // Face the direction of travel; fall back to broadcast facing for X.
+        const facing = vectorToFacing(dx, dy);
+        st.dir = facing.dir;
+        st.sprite.setFlipX(facing.dir === "side" ? facing.flip : st.facing < 0);
         st.walkPhase += delta * 0.018;
         st.walkTimer += delta;
-        if (st.walkTimer > 180) {
+        if (st.walkTimer > 160) {
           st.walkTimer = 0;
           st.walkFrame = (st.walkFrame + 1) % 2;
-          st.sprite.setTexture(st.walkFrame === 0 ? st.idleKey : st.walkKey);
         }
+        st.sprite.setTexture(
+          characterTextureKey(st.prefix, st.dir, st.walkFrame as 0 | 1),
+        );
       } else {
         st.walkPhase += delta * 0.004;
-        if (st.walkFrame !== 0) {
-          st.walkFrame = 0;
-          st.sprite.setTexture(st.idleKey);
-        }
+        if (st.walkFrame !== 0) st.walkFrame = 0;
+        st.sprite.setTexture(characterTextureKey(st.prefix, st.dir, 0));
       }
 
-      st.sprite.setFlipX(st.facing < 0);
       const bob = Math.sin(st.walkPhase) * (moving ? 1.5 : 0.5);
       st.sprite.x = st.x;
       st.sprite.y = st.baseY + bob;
@@ -692,11 +675,14 @@ export class KhuralScene extends Phaser.Scene {
   }
 
   private fitCamera = (size: Phaser.Structs.Size) => {
-    const zoomX = size.width / WORLD_W;
-    const zoomY = size.height / WORLD_H;
-    const zoom = Phaser.Math.Clamp(Math.max(zoomX, zoomY), 0.8, 3.2);
+    // Zoom so the camera shows a cropped portion of the world and pans to
+    // follow the player, instead of fitting the whole map on screen.
+    const zoom = Phaser.Math.Clamp(
+      Math.max(size.width / (WORLD_W * 0.66), size.height / (WORLD_H * 0.66)),
+      1.3,
+      3.2,
+    );
     this.cameras.main.setZoom(zoom);
-    this.cameras.main.centerOn(WORLD_W / 2, WORLD_H / 2);
   };
 
   private buildSprites() {
@@ -795,6 +781,17 @@ export class KhuralScene extends Phaser.Scene {
     }
   }
 
+  // Footprint colliders by prop kind (trees/rocks block; lamps/plants don't).
+  private static readonly PROP_FOOTPRINT: Record<
+    PropKind,
+    { w: number; h: number } | null
+  > = {
+    tree: { w: 22, h: 14 },
+    rock: { w: 30, h: 16 },
+    plant: null,
+    lamp: { w: 10, h: 8 },
+  };
+
   private spawnProps() {
     PROPS.forEach((p) => {
       const key = `prop-${p.kind}`;
@@ -804,7 +801,31 @@ export class KhuralScene extends Phaser.Scene {
         .setScale(scale)
         .setOrigin(0.5, 0.85)
         .setDepth(p.y);
+      const fp = KhuralScene.PROP_FOOTPRINT[p.kind];
+      if (fp) this.addCollider(p.x, p.y, fp.w, fp.h);
     });
+  }
+
+  private addCollider(centerX: number, baseY: number, w: number, h: number) {
+    this.colliders.push({ x: centerX - w / 2, y: baseY - h, w, h });
+  }
+
+  private collidesAt(x: number, y: number): boolean {
+    const left = x - PLAYER_HALF_W;
+    const top = y - PLAYER_FOOT_H / 2;
+    const right = x + PLAYER_HALF_W;
+    const bottom = y + PLAYER_FOOT_H / 2;
+    for (const c of this.colliders) {
+      if (
+        left < c.x + c.w &&
+        right > c.x &&
+        top < c.y + c.h &&
+        bottom > c.y
+      ) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private spawnInteractables() {
@@ -822,6 +843,9 @@ export class KhuralScene extends Phaser.Scene {
         this.dialogueOpen = true;
         gameEvents.openDialogue({ type: item.type, id: item.id });
       });
+
+      // POI buildings are solid; the founder NPC stays walk-through.
+      if (item.type === "poi") this.addCollider(item.x, item.y, 52, 22);
 
       const label = this.add
         .text(item.x, item.y + 14, item.label, {
@@ -959,7 +983,7 @@ export class KhuralScene extends Phaser.Scene {
 
   private spawnPlayer() {
     this.player = this.add
-      .image(SPAWN.x, SPAWN.y, USER_IDLE_KEY)
+      .image(SPAWN.x, SPAWN.y, characterTextureKey(USER_PREFIX, "down", 0))
       .setScale(SPRITE_SCALE)
       .setOrigin(0.5, 0.85)
       .setDepth(SPAWN.y + 1);
@@ -1079,30 +1103,40 @@ export class KhuralScene extends Phaser.Scene {
       const mag = Math.hypot(dx, dy);
       const nx = (dx / mag) * step;
       const ny = (dy / mag) * step;
-      this.player.x = Phaser.Math.Clamp(this.player.x + nx, 24, WORLD_W - 24);
-      this.playerBaseY = Phaser.Math.Clamp(
-        this.playerBaseY + ny,
-        24,
-        WORLD_H - 24,
-      );
-      if (dx < 0) this.player.setFlipX(true);
-      if (dx > 0) this.player.setFlipX(false);
+
+      // Resolve each axis independently so the player slides along walls.
+      const tryX = Phaser.Math.Clamp(this.player.x + nx, 24, WORLD_W - 24);
+      if (!this.collidesAt(tryX, this.playerBaseY)) this.player.x = tryX;
+      const tryY = Phaser.Math.Clamp(this.playerBaseY + ny, 24, WORLD_H - 24);
+      if (!this.collidesAt(this.player.x, tryY)) this.playerBaseY = tryY;
+
+      const facing = vectorToFacing(dx, dy);
+      this.playerDir = facing.dir;
+      this.playerFlip = facing.flip;
+      this.player.setFlipX(facing.flip);
+
       this.walkPhase += delta * 0.018;
       this.playerWalkTimer += delta;
-      if (this.playerWalkTimer > 180) {
+      if (this.playerWalkTimer > 160) {
         this.playerWalkTimer = 0;
         this.playerWalkFrame = (this.playerWalkFrame + 1) % 2;
-        this.player.setTexture(
-          this.playerWalkFrame === 0 ? USER_IDLE_KEY : USER_WALK_KEY,
-        );
       }
+      this.player.setTexture(
+        characterTextureKey(
+          USER_PREFIX,
+          this.playerDir,
+          this.playerWalkFrame as 0 | 1,
+        ),
+      );
     } else {
       this.walkPhase += delta * 0.004;
       this.playerWalkTimer = 0;
       if (this.playerWalkFrame !== 0) {
         this.playerWalkFrame = 0;
-        this.player.setTexture(USER_IDLE_KEY);
       }
+      this.player.setTexture(
+        characterTextureKey(USER_PREFIX, this.playerDir, 0),
+      );
     }
 
     const bob = Math.sin(this.walkPhase) * (moving ? 1.5 : 0.5);
