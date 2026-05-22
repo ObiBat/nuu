@@ -58,13 +58,10 @@ type Collider = { x: number; y: number; w: number; h: number };
 const PLAYER_HALF_W = 9;
 const PLAYER_FOOT_H = 7;
 
-const BG_COLOR = 0x6a9050;
-const GRASS_LIGHT = 0x7ab050;
-const GRASS_DARK = 0x5a8038;
+const BG_COLOR = 0x2f8136; // matches the LPC grass fill tile
 const STONE_LIGHT = 0xd8c498;
 const STONE_DARK = 0xb8a878;
 const STONE_LINE = 0x8a7a58;
-const PATH_LIGHT = 0xc0a07a;
 
 const SPAWN = { x: WORLD_W / 2, y: WORLD_H * 0.58 };
 
@@ -341,6 +338,10 @@ export class KhuralScene extends Phaser.Scene {
 
   preload() {
     preloadLpc(this);
+    this.load.image("tile-grass", "/art/tiles/grass.png");
+    this.load.image("tile-grass-detail", "/art/tiles/grass_detail.png");
+    this.load.image("tile-dirt", "/art/tiles/dirt.png");
+    this.load.image("tile-water", "/art/tiles/water.png");
   }
 
   create() {
@@ -748,33 +749,36 @@ export class KhuralScene extends Phaser.Scene {
   }
 
   private drawFloor() {
-    const g = this.add.graphics();
     const cx = WORLD_W / 2;
     const cy = WORLD_H / 2;
 
-    g.fillStyle(GRASS_LIGHT, 1);
-    g.fillRect(0, 0, WORLD_W, WORLD_H);
+    // Seamless tiled grass under everything.
+    this.add
+      .tileSprite(cx, cy, WORLD_W, WORLD_H, "tile-grass")
+      .setDepth(-20);
 
-    g.fillStyle(GRASS_DARK, 1);
-    const tuftStep = 30;
-    for (let y = 8; y < WORLD_H; y += tuftStep) {
-      for (let x = 8; x < WORLD_W; x += tuftStep) {
-        const h = ((x * 31 + y * 17) % 13) - 6;
-        const jx = x + h;
-        const jy = y + (((x * 13 + y * 7) % 9) - 4);
-        g.fillRect(jx, jy, 2, 2);
-        g.fillRect(jx + 3, jy + 1, 2, 1);
-        g.fillRect(jx - 2, jy + 2, 1, 2);
-      }
+    // Sparse textured-grass clumps so the lawn reads varied, not uniform.
+    // Deterministic scatter; placed below paths so they only show on grass.
+    for (let i = 0; i < 150; i++) {
+      const x = (i * 173 + 60) % WORLD_W;
+      const y = ((i * 271 + ((i * 97) % 53)) % WORLD_H);
+      this.add
+        .image(x, y, "tile-grass-detail")
+        .setScale(1)
+        .setAlpha(0.9)
+        .setDepth(-19);
     }
 
-    const pathW = 64;
-    this.drawCobblePath(g, cx - pathW / 2, 0, pathW, WORLD_H);
-    this.drawCobblePath(g, 0, cy - pathW / 2, WORLD_W, pathW);
+    // Dirt paths crossing at the central pad.
+    const pathW = 104;
+    this.add.tileSprite(cx, cy, pathW, WORLD_H, "tile-dirt").setDepth(-16);
+    this.add.tileSprite(cx, cy, WORLD_W, pathW, "tile-dirt").setDepth(-16);
 
-    const padR = 92;
+    // Central stone gathering pad — the focal khural circle.
+    const g = this.add.graphics().setDepth(-12);
+    const padR = 150;
     g.fillStyle(STONE_LINE, 1);
-    g.fillCircle(cx, cy, padR + 2);
+    g.fillCircle(cx, cy, padR + 3);
     g.fillStyle(STONE_DARK, 1);
     g.fillCircle(cx, cy, padR);
 
@@ -785,7 +789,7 @@ export class KhuralScene extends Phaser.Scene {
       const row = Math.floor((py - (cy - padR)) / 6);
       const offset = (row % 2) * 4;
       for (let px = startX + offset; px < endX; px += 7) {
-        const hash = ((Math.floor(px) * 31 + Math.floor(py) * 17) % 5);
+        const hash = (Math.floor(px) * 31 + Math.floor(py) * 17) % 5;
         const stoneColor = hash > 2 ? STONE_LIGHT : 0xc8b088;
         g.fillStyle(stoneColor, 1);
         const stW = Math.min(5, endX - px);
@@ -796,35 +800,7 @@ export class KhuralScene extends Phaser.Scene {
     g.lineStyle(2, STONE_LINE, 0.7);
     g.strokeCircle(cx, cy, padR);
     g.lineStyle(1, STONE_LINE, 0.45);
-    g.strokeCircle(cx, cy, padR - 22);
-  }
-
-  private drawCobblePath(
-    g: Phaser.GameObjects.Graphics,
-    x: number,
-    y: number,
-    w: number,
-    h: number,
-  ) {
-    g.fillStyle(STONE_LINE, 1);
-    g.fillRect(x, y, w, h);
-
-    const stoneW = 6;
-    const stoneH = 5;
-    const gutter = 1;
-    for (let py = y; py < y + h; py += stoneH + gutter) {
-      const row = Math.floor((py - y) / (stoneH + gutter));
-      const offset = (row % 2) * Math.floor((stoneW + gutter) / 2);
-      for (let px = x + offset; px < x + w; px += stoneW + gutter) {
-        const hash = ((px * 31 + py * 17) % 7);
-        const color =
-          hash > 4 ? STONE_LIGHT : hash > 1 ? STONE_DARK : PATH_LIGHT;
-        g.fillStyle(color, 1);
-        const drawW = Math.min(stoneW, x + w - px);
-        const drawH = Math.min(stoneH, y + h - py);
-        if (drawW > 0 && drawH > 0) g.fillRect(px, py, drawW, drawH);
-      }
-    }
+    g.strokeCircle(cx, cy, padR - 28);
   }
 
   // Footprint colliders by prop kind (trees/rocks block; lamps/plants don't).

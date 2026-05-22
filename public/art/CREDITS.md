@@ -28,3 +28,7 @@ Per-layer authors and licenses:
 | `torso/clothes/longsleeve/longsleeve/female/bluegray` | bluecarrot16, ElizaWy, Stephen Challener (Redshrike) | OGA-BY 3.0, CC-BY-SA 3.0, GPL 3.0 |
 | `torso/clothes/longsleeve/longsleeve/male/forest` | JaidynReiman, Johannes Sjölund (wulax) | CC-BY-SA 3.0, GPL 3.0 |
 | `torso/clothes/longsleeve/longsleeve/male/maroon` | JaidynReiman, Johannes Sjölund (wulax) | CC-BY-SA 3.0, GPL 3.0 |
+
+## Ground tiles
+
+Outdoor terrain tiles from the **Liberated Pixel Cup base assets** (<https://github.com/OpenGameArt/LiberatedPixelCup>), by **Lanea Zimmerman (Sharm)**, licensed **CC-BY-SA 3.0 / GPL 3.0**. Extracted by `scripts/build_tiles.py`.
