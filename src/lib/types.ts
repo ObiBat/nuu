@@ -17,15 +17,6 @@ export type Member = {
   currentProject?: string;
 };
 
-export type Event = {
-  id: string;
-  date: string;
-  title: string;
-  city: string;
-  capacity: number;
-  rsvpUrl: string;
-};
-
 export type Poi = {
   id: string;
   label: string;

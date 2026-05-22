@@ -1,9 +1,7 @@
 import membersData from "../../content/members.json";
-import eventsData from "../../content/events.json";
-import type { Member, Event, Poi } from "./types";
+import type { Member, Poi } from "./types";
 
 export const members: Member[] = membersData.members as Member[];
-export const events: Event[] = eventsData.events as Event[];
 
 export const pois: Poi[] = [
   { id: "notice-board", label: "Notice Board", glyph: "▤", href: "#about" },

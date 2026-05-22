@@ -3,12 +3,35 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Command } from "cmdk";
-import { members, events, pois, navLinks } from "@/lib/content";
+import { members, pois, navLinks } from "@/lib/content";
 import { articles } from "@/lib/library";
+import { fetchEventsBrowser, type EventItem } from "@/lib/supabase/events";
+
+const eventDateFmt = new Intl.DateTimeFormat("en-AU", {
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+});
 
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
+  const [events, setEvents] = useState<EventItem[]>([]);
+  const [eventsLoaded, setEventsLoaded] = useState(false);
   const router = useRouter();
+
+  // Load live events the first time the palette opens.
+  useEffect(() => {
+    if (!open || eventsLoaded) return;
+    let active = true;
+    fetchEventsBrowser().then((view) => {
+      if (!active) return;
+      setEvents(view.events);
+      setEventsLoaded(true);
+    });
+    return () => {
+      active = false;
+    };
+  }, [open, eventsLoaded]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -108,7 +131,9 @@ export function CommandPalette() {
                 value={`${e.title} ${e.city}`}
                 onSelect={() => go("#events")}
                 primary={e.title}
-                secondary={`${e.city} · ${e.date}`}
+                secondary={`${e.city} · ${eventDateFmt.format(
+                  new Date(e.startsAt),
+                )}`}
               />
             ))}
           </Command.Group>
