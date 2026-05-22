@@ -76,8 +76,8 @@ const POIS: InteractableData[] = [
     x: 900,
     y: 300,
     label: "The Rocks",
-    spriteKey: "obj-sign",
-    scale: 1.3,
+    spriteKey: "na-flag",
+    scale: 3.0,
   },
   {
     id: "salon",
@@ -341,8 +341,7 @@ export class KhuralScene extends Phaser.Scene {
     this.load.image("na-rock", "/art/ninja/obj/rock.png");
     this.load.image("na-house", "/art/ninja/obj/house.png");
     this.load.image("na-boat", "/art/ninja/obj/boat.png");
-    // Notice-board keeps the small LPC signpost.
-    this.load.image("obj-sign", "/art/objects/sign.png");
+    this.load.image("na-flag", "/art/ninja/obj/flag.png");
   }
 
   create() {
@@ -809,7 +808,7 @@ export class KhuralScene extends Phaser.Scene {
     tree: { key: "na-tree", scale: 2.2, oy: 0.95, fp: { w: 14, h: 9 } },
     rock: { key: "na-rock", scale: 2.4, oy: 0.85, fp: { w: 22, h: 12 } },
     plant: { key: "na-bush", scale: 1.7, oy: 0.85, fp: null },
-    lamp: { key: "prop-lamp", scale: SPRITE_SCALE * 0.85, oy: 0.85, fp: { w: 10, h: 8 } },
+    lamp: { key: "na-bush", scale: 1.4, oy: 0.85, fp: null },
   };
 
   private spawnProps() {
@@ -869,7 +868,7 @@ export class KhuralScene extends Phaser.Scene {
             fp: null,
           };
         if (item.id === "notice-board")
-          return { key: "obj-sign", oy: 0.95, fp: { w: 16, h: 10 } };
+          return { key: "na-flag", oy: 0.95, fp: { w: 10, h: 8 } };
         if (item.id === "portal")
           return { key: "poi-portal", oy: 0.85, fp: { w: 44, h: 18 } };
         return { key: "na-house", oy: 0.9, fp: { w: 70, h: 26 } };

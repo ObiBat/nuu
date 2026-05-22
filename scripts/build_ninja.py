@@ -97,7 +97,12 @@ def main() -> int:
     # A harbour boat (first frame).
     boat = Image.open(io.BytesIO(fetch("Backgrounds/Vehicles/Boat.png"))).convert("RGBA")
     trim(boat.crop((0, 0, 40, 32))).save(os.path.join(ROOT, "obj", "boat.png"))
-    for n in ["tree", "bush", "house", "rock", "boat"]:
+    # A flag on a pole (first frame) — marks the About POI ("The Rocks").
+    flag = Image.open(
+        io.BytesIO(fetch("Backgrounds/Animated/Flag/FlagRed16x16.png"))
+    ).convert("RGBA")
+    trim(flag.crop((0, 0, 16, 16))).save(os.path.join(ROOT, "obj", "flag.png"))
+    for n in ["tree", "bush", "house", "rock", "boat", "flag"]:
         print(f"obj {n} {Image.open(os.path.join(ROOT, 'obj', n + '.png')).size}")
 
     for ch in CHARACTERS:
