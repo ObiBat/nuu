@@ -85,8 +85,8 @@ const POIS: InteractableData[] = [
     x: 1240,
     y: 360,
     label: "Salon",
-    spriteKey: "obj-house",
-    scale: 0.62,
+    spriteKey: "na-house",
+    scale: 1.9,
   },
   {
     id: "pavilion",
@@ -94,8 +94,8 @@ const POIS: InteractableData[] = [
     x: 1500,
     y: 680,
     label: "Events",
-    spriteKey: "obj-house",
-    scale: 0.62,
+    spriteKey: "na-house",
+    scale: 1.9,
   },
   {
     id: "bookshelf",
@@ -103,8 +103,8 @@ const POIS: InteractableData[] = [
     x: 300,
     y: 640,
     label: "Library",
-    spriteKey: "obj-house",
-    scale: 0.62,
+    spriteKey: "na-house",
+    scale: 1.9,
   },
   {
     id: "portal",
@@ -335,13 +335,13 @@ export class KhuralScene extends Phaser.Scene {
     this.load.image("na-grass", "/art/ninja/fill/grass.png");
     this.load.image("na-water", "/art/ninja/fill/water.png");
     this.load.image("na-sand", "/art/ninja/fill/sand.png");
-    // NA nature props.
+    // NA nature props + buildings + harbour boats.
     this.load.image("na-tree", "/art/ninja/obj/tree.png");
     this.load.image("na-bush", "/art/ninja/obj/bush.png");
     this.load.image("na-rock", "/art/ninja/obj/rock.png");
-    // POI buildings still use the (clean) LPC house/sign — NA's house tileset
-    // isn't laid out as a ready building to slice.
-    this.load.image("obj-house", "/art/objects/house.png");
+    this.load.image("na-house", "/art/ninja/obj/house.png");
+    this.load.image("na-boat", "/art/ninja/obj/boat.png");
+    // Notice-board keeps the small LPC signpost.
     this.load.image("obj-sign", "/art/objects/sign.png");
   }
 
@@ -761,6 +761,29 @@ export class KhuralScene extends Phaser.Scene {
       .tileSprite(cx, HARBOUR_H + BEACH_H / 2, WORLD_W, BEACH_H, "na-sand")
       .setDepth(-17);
 
+    // Boats moored in the harbour.
+    const boats = [
+      { x: 300, y: 120 },
+      { x: 760, y: 90 },
+      { x: 1180, y: 140 },
+      { x: 1560, y: 100 },
+    ];
+    boats.forEach((b, i) => {
+      const boat = this.add
+        .image(b.x, b.y, "na-boat")
+        .setScale(2)
+        .setOrigin(0.5, 0.7)
+        .setDepth(-17);
+      this.tweens.add({
+        targets: boat,
+        y: b.y + 4,
+        duration: 1800 + i * 200,
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.InOut",
+      });
+    });
+
     // Soft shoreline shadow where sand meets grass.
     const g = this.add.graphics().setDepth(-16);
     g.fillStyle(0x000000, 0.08);
@@ -849,7 +872,7 @@ export class KhuralScene extends Phaser.Scene {
           return { key: "obj-sign", oy: 0.95, fp: { w: 16, h: 10 } };
         if (item.id === "portal")
           return { key: "poi-portal", oy: 0.85, fp: { w: 44, h: 18 } };
-        return { key: "obj-house", oy: 0.95, fp: { w: 110, h: 36 } };
+        return { key: "na-house", oy: 0.9, fp: { w: 70, h: 26 } };
       })();
 
       const sprite = this.add

@@ -90,10 +90,14 @@ def main() -> int:
     trim(nature.crop((16, 32, 48, 80))).save(os.path.join(ROOT, "obj", "tree.png"))
     trim(nature.crop((16, 160, 48, 192))).save(os.path.join(ROOT, "obj", "bush.png"))
     house = raw["TilesetHouse"]
-    trim(house.crop((0, 48, 144, 208))).save(os.path.join(ROOT, "obj", "house.png"))
+    # A complete small house (peaked roof + windowed walls + door).
+    trim(house.crop((0, 174, 47, 221))).save(os.path.join(ROOT, "obj", "house.png"))
     rock = Image.open(io.BytesIO(fetch("FX/Particle/RockGray.png"))).convert("RGBA")
     trim(rock.crop((0, 0, 16, 16))).save(os.path.join(ROOT, "obj", "rock.png"))
-    for n in ["tree", "bush", "house", "rock"]:
+    # A harbour boat (first frame).
+    boat = Image.open(io.BytesIO(fetch("Backgrounds/Vehicles/Boat.png"))).convert("RGBA")
+    trim(boat.crop((0, 0, 40, 32))).save(os.path.join(ROOT, "obj", "boat.png"))
+    for n in ["tree", "bush", "house", "rock", "boat"]:
         print(f"obj {n} {Image.open(os.path.join(ROOT, 'obj', n + '.png')).size}")
 
     for ch in CHARACTERS:
