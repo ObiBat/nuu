@@ -62,6 +62,20 @@ type EventRsvpInsert = {
   created_at?: string;
 };
 
+type PostRow = {
+  id: string;
+  author_id: string;
+  body: string;
+  created_at: string;
+};
+
+type PostInsert = {
+  id?: string;
+  author_id: string;
+  body: string;
+  created_at?: string;
+};
+
 type ProfileInsert = {
   user_id: string;
   member_number?: number;
@@ -120,6 +134,19 @@ export type Database = {
             columns: ["event_id"];
             referencedRelation: "events";
             referencedColumns: ["id"];
+          },
+        ];
+      };
+      posts: {
+        Row: PostRow;
+        Insert: PostInsert;
+        Update: Partial<PostInsert>;
+        Relationships: [
+          {
+            foreignKeyName: "posts_author_id_fkey";
+            columns: ["author_id"];
+            referencedRelation: "profiles";
+            referencedColumns: ["user_id"];
           },
         ];
       };

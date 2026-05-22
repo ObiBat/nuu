@@ -23,6 +23,7 @@ import {
 } from "@/lib/character";
 import { gameEvents } from "@/game/events";
 import { EventsBoard } from "./EventsBoard";
+import { NoticeBoard } from "./NoticeBoard";
 import { useSupabaseUser } from "@/lib/supabase/use-user";
 import {
   characterFromProfile,
@@ -173,6 +174,7 @@ function AboutPanel() {
         <span aria-hidden>·</span>
         <span>Open source soon</span>
       </div>
+      <NoticeBoard />
     </div>
   );
 }
