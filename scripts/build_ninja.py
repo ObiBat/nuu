@@ -55,10 +55,27 @@ def save(data: bytes, *parts: str) -> tuple[int, int]:
     return Image.open(io.BytesIO(data)).size
 
 
+# Seamless fill tiles: (tileset, col, row) of a 16px fill tile.
+FILLS = {
+    "grass": ("TilesetField", 1, 7),
+    "water": ("TilesetWater", 1, 1),
+    "sand": ("TilesetWater", 0, 5),
+}
+
+
 def main() -> int:
+    raw: dict[str, Image.Image] = {}
     for name in TILESETS:
-        size = save(fetch(f"Backgrounds/Tilesets/{name}.png"), "tiles", f"{name}.png")
+        data = fetch(f"Backgrounds/Tilesets/{name}.png")
+        size = save(data, "tiles", f"{name}.png")
+        raw[name] = Image.open(io.BytesIO(data)).convert("RGBA")
         print(f"tile {name} {size}")
+
+    os.makedirs(os.path.join(ROOT, "fill"), exist_ok=True)
+    for out, (src, col, row) in FILLS.items():
+        tile = raw[src].crop((col * 16, row * 16, (col + 1) * 16, (row + 1) * 16))
+        tile.save(os.path.join(ROOT, "fill", f"{out}.png"))
+        print(f"fill {out} from {src} ({col},{row})")
 
     for ch in CHARACTERS:
         for anim in ["Walk", "Idle"]:

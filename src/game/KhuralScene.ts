@@ -29,39 +29,32 @@ import {
   type RemoteMember,
 } from "./presence";
 import {
-  registerCharacterTextures,
-  removeCharacterTextures,
-  characterTextureKey,
-  vectorToFacing,
-  type Dir,
-} from "./characters";
-import {
-  preloadLpc,
-  registerLpcAnims,
-  lpcTextureKey,
-  lpcWalkAnim,
-  lpcIdleFrame,
+  NINJA_PRESETS,
+  preloadNinja,
+  registerNinjaAnims,
+  ninjaIdleKey,
+  ninjaWalkAnim,
+  ninjaIdleFrame,
   vectorToDir4,
-  type LpcPreset,
+  type NinjaPreset,
   type Dir4,
-} from "./lpc";
+} from "./ninja";
 
 const WORLD_W = 1800;
 const WORLD_H = 1200;
 const PLAYER_SPEED = 210;
 const INTERACT_RADIUS = 96;
 const SPRITE_SCALE = 2.8;
-const LPC_SCALE = 0.72; // small characters in a big, zoomed-out world
+const NINJA_SCALE = 2.4; // 16px NA characters scaled into the world
 
 // Axis-aligned collider rectangle in world space (footprint of a solid object).
 type Collider = { x: number; y: number; w: number; h: number };
 const PLAYER_HALF_W = 9;
 const PLAYER_FOOT_H = 7;
 
-const BG_COLOR = 0x2f8136; // matches the LPC grass fill tile
-const STONE_LIGHT = 0xd8c498;
-const STONE_DARK = 0xb8a878;
-const STONE_LINE = 0x8a7a58;
+const BG_COLOR = 0x73a234; // matches the NA grass fill tile
+const HARBOUR_H = 230; // water band height along the top
+const BEACH_H = 64; // sand strip between water and grass
 
 const SPAWN = { x: WORLD_W / 2, y: WORLD_H * 0.58 };
 
@@ -130,14 +123,14 @@ const OBI_NPC: InteractableData = {
   y: 440,
   label: "Obi · Founder",
   spriteKey: "char-obi-idle",
-  scale: LPC_SCALE,
+  scale: NINJA_SCALE,
 };
 
 type AmbientNpc = {
   id: string;
   x: number;
   y: number;
-  preset: LpcPreset;
+  preset: NinjaPreset;
   lines: string[];
 };
 
@@ -146,63 +139,63 @@ const AMBIENT_NPCS: AmbientNpc[] = [
     id: "amb-1",
     x: 1080,
     y: 520,
-    preset: "wanderer",
+    preset: "Villager",
     lines: ["Sain bain uu!", "First move?", "From Ulaanbaatar."],
   },
   {
     id: "amb-2",
     x: 480,
     y: 820,
-    preset: "nomad",
+    preset: "Woman",
     lines: ["Building from Berlin.", "Shipping today.", "Anyone in Melb?"],
   },
   {
     id: "amb-3",
     x: 1280,
     y: 880,
-    preset: "steppe",
+    preset: "OldMan",
     lines: ["Trying shatar.", "Where's the library?", "TS or Rust?"],
   },
   {
     id: "amb-4",
     x: 720,
     y: 760,
-    preset: "nomad",
+    preset: "Woman",
     lines: ["Good morning.", "Nice khural.", "Who's the founder?"],
   },
   {
     id: "amb-5",
     x: 1120,
     y: 740,
-    preset: "wanderer",
+    preset: "Villager",
     lines: ["GM nomads.", "Coffee somewhere?", "Stand-up in 5."],
   },
   {
     id: "amb-6",
     x: 1380,
     y: 480,
-    preset: "steppe",
+    preset: "OldMan",
     lines: ["Just shipped.", "Anyone reviewing?", "Cmd-K!"],
   },
   {
     id: "amb-7",
     x: 560,
     y: 620,
-    preset: "wanderer",
+    preset: "Villager",
     lines: ["New here.", "Where's everyone from?", "Love the steppe."],
   },
   {
     id: "amb-8",
     x: 980,
     y: 420,
-    preset: "nomad",
+    preset: "Woman",
     lines: ["Designing all night.", "Figma open.", "Ship it."],
   },
   {
     id: "amb-9",
     x: 760,
     y: 980,
-    preset: "steppe",
+    preset: "OldMan",
     lines: ["Heading to Discord.", "Portal's that way.", "GG."],
   },
 ];
@@ -285,10 +278,10 @@ type AmbientNpcState = AmbientNpc & {
 
 type RemotePlayerState = {
   id: string;
-  sprite: Phaser.GameObjects.Image;
+  sprite: Phaser.GameObjects.Sprite;
   nameTag: Phaser.GameObjects.Container;
-  prefix: string;
-  dir: Dir;
+  preset: NinjaPreset;
+  dir: Dir4;
   x: number;
   baseY: number;
   targetX: number;
@@ -303,7 +296,7 @@ type RemotePlayerState = {
 
 export class KhuralScene extends Phaser.Scene {
   private player!: Phaser.GameObjects.Sprite;
-  private playerPreset: LpcPreset = "wanderer";
+  private playerPreset: NinjaPreset = "Boy";
   private playerDir4: Dir4 = "down";
   private playerBaseY = 0;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -337,11 +330,11 @@ export class KhuralScene extends Phaser.Scene {
   }
 
   preload() {
-    preloadLpc(this);
-    this.load.image("tile-grass", "/art/tiles/grass.png");
-    this.load.image("tile-grass-detail", "/art/tiles/grass_detail.png");
-    this.load.image("tile-dirt", "/art/tiles/dirt.png");
-    this.load.image("tile-water", "/art/tiles/water.png");
+    preloadNinja(this);
+    this.load.image("na-grass", "/art/ninja/fill/grass.png");
+    this.load.image("na-water", "/art/ninja/fill/water.png");
+    this.load.image("na-sand", "/art/ninja/fill/sand.png");
+    // Buildings/props still use the LPC objects until NA-4.
     this.load.image("obj-tree", "/art/objects/tree.png");
     this.load.image("obj-bush", "/art/objects/bush.png");
     this.load.image("obj-rock", "/art/objects/rock.png");
@@ -497,14 +490,18 @@ export class KhuralScene extends Phaser.Scene {
   };
 
   private addRemote(m: RemoteMember) {
-    const prefix = `remote-${m.userId}`;
-    registerCharacterTextures(this, prefix, m.palette);
+    // Pick a stable NA preset per member from their id (real per-member look
+    // comes when presence carries the chosen preset).
+    let h = 0;
+    for (const c of m.userId) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+    const preset = NINJA_PRESETS[h % NINJA_PRESETS.length];
+    registerNinjaAnims(this, preset);
 
     const sprite = this.add
-      .image(m.x, m.y, characterTextureKey(prefix, "side", 0))
-      .setScale(SPRITE_SCALE)
+      .sprite(m.x, m.y, ninjaIdleKey(preset))
+      .setScale(NINJA_SCALE)
       .setOrigin(0.5, 0.85)
-      .setFlipX(m.facing < 0)
+      .setFrame(ninjaIdleFrame("down"))
       .setDepth(m.y);
 
     const nameTag = this.buildNameTag(m.displayName, m.memberNumber);
@@ -514,8 +511,8 @@ export class KhuralScene extends Phaser.Scene {
       id: m.userId,
       sprite,
       nameTag,
-      prefix,
-      dir: "side",
+      preset,
+      dir: "down",
       x: m.x,
       baseY: m.y,
       targetX: m.x,
@@ -535,7 +532,6 @@ export class KhuralScene extends Phaser.Scene {
     st.bubble?.destroy();
     st.nameTag.destroy();
     st.sprite.destroy();
-    removeCharacterTextures(this, st.prefix);
     this.remote.delete(id);
   }
 
@@ -668,23 +664,13 @@ export class KhuralScene extends Phaser.Scene {
       st.baseY += dy * 0.2;
 
       if (moving) {
-        // Face the direction of travel; fall back to broadcast facing for X.
-        const facing = vectorToFacing(dx, dy);
-        st.dir = facing.dir;
-        st.sprite.setFlipX(facing.dir === "side" ? facing.flip : st.facing < 0);
+        st.dir = vectorToDir4(dx, dy);
         st.walkPhase += delta * 0.018;
-        st.walkTimer += delta;
-        if (st.walkTimer > 160) {
-          st.walkTimer = 0;
-          st.walkFrame = (st.walkFrame + 1) % 2;
-        }
-        st.sprite.setTexture(
-          characterTextureKey(st.prefix, st.dir, st.walkFrame as 0 | 1),
-        );
+        st.sprite.play(ninjaWalkAnim(st.preset, st.dir), true);
       } else {
         st.walkPhase += delta * 0.004;
-        if (st.walkFrame !== 0) st.walkFrame = 0;
-        st.sprite.setTexture(characterTextureKey(st.prefix, st.dir, 0));
+        st.sprite.stop();
+        st.sprite.setTexture(ninjaIdleKey(st.preset), ninjaIdleFrame(st.dir));
       }
 
       const bob = Math.sin(st.walkPhase) * (moving ? 1.5 : 0.5);
@@ -757,55 +743,33 @@ export class KhuralScene extends Phaser.Scene {
     const cx = WORLD_W / 2;
     const cy = WORLD_H / 2;
 
-    // Seamless tiled grass under everything.
+    // Grass field under everything.
     this.add
-      .tileSprite(cx, cy, WORLD_W, WORLD_H, "tile-grass")
+      .tileSprite(cx, cy, WORLD_W, WORLD_H, "na-grass")
       .setDepth(-20);
 
-    // Sparse textured-grass clumps so the lawn reads varied, not uniform.
-    // Deterministic scatter; placed below paths so they only show on grass.
-    for (let i = 0; i < 150; i++) {
-      const x = (i * 173 + 60) % WORLD_W;
-      const y = ((i * 271 + ((i * 97) % 53)) % WORLD_H);
-      this.add
-        .image(x, y, "tile-grass-detail")
-        .setScale(1)
-        .setAlpha(0.9)
-        .setDepth(-19);
-    }
+    // Sydney harbour along the top: water band, then a sand beach strip.
+    this.add
+      .tileSprite(cx, HARBOUR_H / 2, WORLD_W, HARBOUR_H, "na-water")
+      .setDepth(-18);
+    this.add
+      .tileSprite(cx, HARBOUR_H + BEACH_H / 2, WORLD_W, BEACH_H, "na-sand")
+      .setDepth(-17);
 
-    // Dirt paths crossing at the central pad.
-    const pathW = 104;
-    this.add.tileSprite(cx, cy, pathW, WORLD_H, "tile-dirt").setDepth(-16);
-    this.add.tileSprite(cx, cy, WORLD_W, pathW, "tile-dirt").setDepth(-16);
+    // Soft shoreline shadow where sand meets grass.
+    const g = this.add.graphics().setDepth(-16);
+    g.fillStyle(0x000000, 0.08);
+    g.fillRect(0, HARBOUR_H + BEACH_H, WORLD_W, 6);
 
-    // Central stone gathering pad — the focal khural circle.
-    const g = this.add.graphics().setDepth(-12);
-    const padR = 150;
-    g.fillStyle(STONE_LINE, 1);
-    g.fillCircle(cx, cy, padR + 3);
-    g.fillStyle(STONE_DARK, 1);
-    g.fillCircle(cx, cy, padR);
+    // Sand plaza at the central gathering circle.
+    const plaza = this.add.graphics().setDepth(-15);
+    plaza.fillStyle(0xf0cb8d, 1);
+    plaza.fillCircle(cx, cy, 150);
+    plaza.fillStyle(0xe6bd7a, 0.5);
+    plaza.fillCircle(cx, cy, 120);
 
-    for (let py = cy - padR; py < cy + padR; py += 6) {
-      const halfChord = Math.sqrt(padR * padR - (py - cy) * (py - cy));
-      const startX = cx - halfChord;
-      const endX = cx + halfChord;
-      const row = Math.floor((py - (cy - padR)) / 6);
-      const offset = (row % 2) * 4;
-      for (let px = startX + offset; px < endX; px += 7) {
-        const hash = (Math.floor(px) * 31 + Math.floor(py) * 17) % 5;
-        const stoneColor = hash > 2 ? STONE_LIGHT : 0xc8b088;
-        g.fillStyle(stoneColor, 1);
-        const stW = Math.min(5, endX - px);
-        if (stW > 0) g.fillRect(Math.floor(px) + 1, Math.floor(py) + 1, stW, 4);
-      }
-    }
-
-    g.lineStyle(2, STONE_LINE, 0.7);
-    g.strokeCircle(cx, cy, padR);
-    g.lineStyle(1, STONE_LINE, 0.45);
-    g.strokeCircle(cx, cy, padR - 28);
+    // The harbour water is impassable — block the top band.
+    this.colliders.push({ x: 0, y: 0, w: WORLD_W, h: HARBOUR_H + 8 });
   }
 
   // Per-kind config: LPC object sprites (lamp stays procedural). oy = vertical
@@ -822,6 +786,8 @@ export class KhuralScene extends Phaser.Scene {
 
   private spawnProps() {
     PROPS.forEach((p) => {
+      // Don't spawn props in the harbour water / beach band.
+      if (p.y < HARBOUR_H + BEACH_H + 12) return;
       const cfg = KhuralScene.PROP_CFG[p.kind];
       this.add
         .image(p.x, p.y, cfg.key)
@@ -869,9 +835,9 @@ export class KhuralScene extends Phaser.Scene {
       } => {
         if (item.id === "obi")
           return {
-            key: lpcTextureKey("steppe"),
-            frame: lpcIdleFrame("down"),
-            oy: 0.92,
+            key: ninjaIdleKey("Noble"),
+            frame: ninjaIdleFrame("down"),
+            oy: 0.85,
             fp: null,
           };
         if (item.id === "notice-board")
@@ -1000,13 +966,13 @@ export class KhuralScene extends Phaser.Scene {
 
   private spawnAmbient() {
     AMBIENT_NPCS.forEach((npc) => {
-      registerLpcAnims(this, npc.preset);
+      registerNinjaAnims(this, npc.preset);
       const sprite = this.add
-        .sprite(npc.x, npc.y, lpcTextureKey(npc.preset))
-        .setScale(LPC_SCALE * 0.92)
-        .setOrigin(0.5, 0.92)
-        .setFrame(lpcIdleFrame("down"))
-        .setAlpha(0.92)
+        .sprite(npc.x, npc.y, ninjaIdleKey(npc.preset))
+        .setScale(NINJA_SCALE * 0.95)
+        .setOrigin(0.5, 0.85)
+        .setFrame(ninjaIdleFrame("down"))
+        .setAlpha(0.95)
         .setDepth(npc.y);
 
       const state: AmbientNpcState = {
@@ -1032,12 +998,12 @@ export class KhuralScene extends Phaser.Scene {
   private playerIndicator!: Phaser.GameObjects.Container;
 
   private spawnPlayer() {
-    registerLpcAnims(this, this.playerPreset);
+    registerNinjaAnims(this, this.playerPreset);
     this.player = this.add
-      .sprite(SPAWN.x, SPAWN.y, lpcTextureKey(this.playerPreset))
-      .setScale(LPC_SCALE)
-      .setOrigin(0.5, 0.92)
-      .setFrame(lpcIdleFrame("down"))
+      .sprite(SPAWN.x, SPAWN.y, ninjaIdleKey(this.playerPreset))
+      .setScale(NINJA_SCALE)
+      .setOrigin(0.5, 0.85)
+      .setFrame(ninjaIdleFrame("down"))
       .setDepth(SPAWN.y + 1);
     this.playerBaseY = SPAWN.y;
 
@@ -1163,13 +1129,16 @@ export class KhuralScene extends Phaser.Scene {
       if (!this.collidesAt(this.player.x, tryY)) this.playerBaseY = tryY;
 
       this.playerDir4 = vectorToDir4(dx, dy);
-      this.player.play(lpcWalkAnim(this.playerPreset, this.playerDir4), true);
+      this.player.play(ninjaWalkAnim(this.playerPreset, this.playerDir4), true);
     } else {
       this.player.stop();
-      this.player.setFrame(lpcIdleFrame(this.playerDir4));
+      this.player.setTexture(
+        ninjaIdleKey(this.playerPreset),
+        ninjaIdleFrame(this.playerDir4),
+      );
     }
 
-    // LPC walk frames already convey stride; keep a tiny idle bob only.
+    // Walk frames convey stride; keep a tiny idle bob only.
     const bob = moving ? 0 : Math.sin(time * 0.004) * 0.6;
     this.player.y = this.playerBaseY + bob;
     this.player.setDepth(this.playerBaseY + 1);
@@ -1183,7 +1152,7 @@ export class KhuralScene extends Phaser.Scene {
         if (npc.moving) {
           npc.moving = false;
           npc.sprite.stop();
-          npc.sprite.setFrame(lpcIdleFrame(npc.dir4));
+          npc.sprite.setTexture(ninjaIdleKey(npc.preset), ninjaIdleFrame(npc.dir4));
         }
         if (npc.pauseTimer <= 0) {
           const a = Math.random() * Math.PI * 2;
@@ -1208,7 +1177,7 @@ export class KhuralScene extends Phaser.Scene {
           npc.moving = false;
           npc.pauseTimer = 1500 + Math.random() * 4500;
           npc.sprite.stop();
-          npc.sprite.setFrame(lpcIdleFrame(npc.dir4));
+          npc.sprite.setTexture(ninjaIdleKey(npc.preset), ninjaIdleFrame(npc.dir4));
         } else {
           const step = (AMB_SPEED * delta) / 1000;
           const nx = npc.x + (dx / dist) * step;
@@ -1220,7 +1189,7 @@ export class KhuralScene extends Phaser.Scene {
             npc.baseY = ny;
           }
           npc.dir4 = vectorToDir4(dx, dy);
-          npc.sprite.play(lpcWalkAnim(npc.preset, npc.dir4), true);
+          npc.sprite.play(ninjaWalkAnim(npc.preset, npc.dir4), true);
         }
       }
       npc.sprite.x = npc.x;
