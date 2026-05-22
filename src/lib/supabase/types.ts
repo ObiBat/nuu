@@ -108,6 +108,20 @@ type ContributionInsert = {
 
 type ContributionUpdate = Partial<Omit<ContributionInsert, "author_id">>;
 
+type NewsletterRow = {
+  id: string;
+  email: string;
+  source: string;
+  created_at: string;
+};
+
+type NewsletterInsert = {
+  id?: string;
+  email: string;
+  source?: string;
+  created_at?: string;
+};
+
 type ProfileInsert = {
   user_id: string;
   member_number?: number;
@@ -194,6 +208,12 @@ export type Database = {
             referencedColumns: ["user_id"];
           },
         ];
+      };
+      newsletter_subscribers: {
+        Row: NewsletterRow;
+        Insert: NewsletterInsert;
+        Update: Partial<NewsletterInsert>;
+        Relationships: [];
       };
     };
     Views: Record<string, never>;

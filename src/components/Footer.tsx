@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { NewsletterSignup } from "./NewsletterSignup";
 
 const cols = [
   {
@@ -30,6 +31,11 @@ const cols = [
 export function Footer() {
   return (
     <footer className="bg-background border-t border-border">
+      <div className="border-b border-border">
+        <div className="mx-auto max-w-[1200px] px-6 py-12">
+          <NewsletterSignup />
+        </div>
+      </div>
       <div className="mx-auto max-w-[1200px] px-6 py-16 grid grid-cols-2 md:grid-cols-[1.5fr_1fr_1fr_1fr] gap-10">
         <div className="flex flex-col gap-3">
           <Link
