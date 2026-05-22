@@ -335,10 +335,12 @@ export class KhuralScene extends Phaser.Scene {
     this.load.image("na-grass", "/art/ninja/fill/grass.png");
     this.load.image("na-water", "/art/ninja/fill/water.png");
     this.load.image("na-sand", "/art/ninja/fill/sand.png");
-    // Buildings/props still use the LPC objects until NA-4.
-    this.load.image("obj-tree", "/art/objects/tree.png");
-    this.load.image("obj-bush", "/art/objects/bush.png");
-    this.load.image("obj-rock", "/art/objects/rock.png");
+    // NA nature props.
+    this.load.image("na-tree", "/art/ninja/obj/tree.png");
+    this.load.image("na-bush", "/art/ninja/obj/bush.png");
+    this.load.image("na-rock", "/art/ninja/obj/rock.png");
+    // POI buildings still use the (clean) LPC house/sign — NA's house tileset
+    // isn't laid out as a ready building to slice.
     this.load.image("obj-house", "/art/objects/house.png");
     this.load.image("obj-sign", "/art/objects/sign.png");
   }
@@ -781,9 +783,9 @@ export class KhuralScene extends Phaser.Scene {
     PropKind,
     { key: string; scale: number; oy: number; fp: { w: number; h: number } | null }
   > = {
-    tree: { key: "obj-tree", scale: 0.82, oy: 0.95, fp: { w: 20, h: 12 } },
-    rock: { key: "obj-rock", scale: 1.2, oy: 0.82, fp: { w: 30, h: 14 } },
-    plant: { key: "obj-bush", scale: 1.0, oy: 0.85, fp: null },
+    tree: { key: "na-tree", scale: 2.2, oy: 0.95, fp: { w: 14, h: 9 } },
+    rock: { key: "na-rock", scale: 2.4, oy: 0.85, fp: { w: 22, h: 12 } },
+    plant: { key: "na-bush", scale: 1.7, oy: 0.85, fp: null },
     lamp: { key: "prop-lamp", scale: SPRITE_SCALE * 0.85, oy: 0.85, fp: { w: 10, h: 8 } },
   };
 

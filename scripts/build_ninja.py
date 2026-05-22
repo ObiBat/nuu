@@ -77,6 +77,25 @@ def main() -> int:
         tile.save(os.path.join(ROOT, "fill", f"{out}.png"))
         print(f"fill {out} from {src} ({col},{row})")
 
+    # Objects sliced from packed tilesets (verified regions) + a rock particle.
+    os.makedirs(os.path.join(ROOT, "obj"), exist_ok=True)
+
+    def trim(im: Image.Image) -> Image.Image:
+        import numpy as np
+        arr = np.array(im)[:, :, 3]
+        ys, xs = np.where(arr > 40)
+        return im.crop((xs.min(), ys.min(), xs.max() + 1, ys.max() + 1))
+
+    nature = raw["TilesetNature"]
+    trim(nature.crop((16, 32, 48, 80))).save(os.path.join(ROOT, "obj", "tree.png"))
+    trim(nature.crop((16, 160, 48, 192))).save(os.path.join(ROOT, "obj", "bush.png"))
+    house = raw["TilesetHouse"]
+    trim(house.crop((0, 48, 144, 208))).save(os.path.join(ROOT, "obj", "house.png"))
+    rock = Image.open(io.BytesIO(fetch("FX/Particle/RockGray.png"))).convert("RGBA")
+    trim(rock.crop((0, 0, 16, 16))).save(os.path.join(ROOT, "obj", "rock.png"))
+    for n in ["tree", "bush", "house", "rock"]:
+        print(f"obj {n} {Image.open(os.path.join(ROOT, 'obj', n + '.png')).size}")
+
     for ch in CHARACTERS:
         for anim in ["Walk", "Idle"]:
             save(fetch(f"Actor/Characters/{ch}/SeparateAnim/{anim}.png"),
