@@ -46,12 +46,12 @@ import {
   type Dir4,
 } from "./lpc";
 
-const WORLD_W = 1000;
-const WORLD_H = 580;
-const PLAYER_SPEED = 200;
-const INTERACT_RADIUS = 92;
+const WORLD_W = 1800;
+const WORLD_H = 1200;
+const PLAYER_SPEED = 210;
+const INTERACT_RADIUS = 96;
 const SPRITE_SCALE = 2.8;
-const LPC_SCALE = 0.95; // 64px LPC frames → ~character height in world units
+const LPC_SCALE = 0.72; // small characters in a big, zoomed-out world
 
 // Axis-aligned collider rectangle in world space (footprint of a solid object).
 type Collider = { x: number; y: number; w: number; h: number };
@@ -82,55 +82,55 @@ const POIS: InteractableData[] = [
   {
     id: "notice-board",
     type: "poi",
-    x: 500,
-    y: 130,
+    x: 900,
+    y: 300,
     label: "About",
     spriteKey: "poi-notice-board",
-    scale: SPRITE_SCALE * 0.85,
-  },
-  {
-    id: "pavilion",
-    type: "poi",
-    x: 830,
-    y: 290,
-    label: "Events",
-    spriteKey: "poi-pavilion",
-    scale: SPRITE_SCALE * 0.9,
-  },
-  {
-    id: "bookshelf",
-    type: "poi",
-    x: 170,
-    y: 290,
-    label: "Library",
-    spriteKey: "poi-bookshelf",
-    scale: SPRITE_SCALE * 0.85,
-  },
-  {
-    id: "portal",
-    type: "poi",
-    x: 500,
-    y: 460,
-    label: "Discord",
-    spriteKey: "poi-portal",
-    scale: SPRITE_SCALE * 1.05,
+    scale: SPRITE_SCALE * 0.95,
   },
   {
     id: "salon",
     type: "poi",
-    x: 660,
-    y: 180,
+    x: 1220,
+    y: 380,
     label: "Salon",
     spriteKey: "poi-salon",
-    scale: SPRITE_SCALE * 0.85,
+    scale: SPRITE_SCALE * 0.95,
+  },
+  {
+    id: "pavilion",
+    type: "poi",
+    x: 1480,
+    y: 660,
+    label: "Events",
+    spriteKey: "poi-pavilion",
+    scale: SPRITE_SCALE,
+  },
+  {
+    id: "bookshelf",
+    type: "poi",
+    x: 320,
+    y: 620,
+    label: "Library",
+    spriteKey: "poi-bookshelf",
+    scale: SPRITE_SCALE * 0.95,
+  },
+  {
+    id: "portal",
+    type: "poi",
+    x: 900,
+    y: 960,
+    label: "Discord",
+    spriteKey: "poi-portal",
+    scale: SPRITE_SCALE * 1.15,
   },
 ];
 
 const OBI_NPC: InteractableData = {
   id: "obi",
   type: "npc",
-  x: 340,
-  y: 180,
+  x: 600,
+  y: 440,
   label: "Obi · Founder",
   spriteKey: "char-obi-idle",
   scale: LPC_SCALE,
@@ -147,76 +147,118 @@ type AmbientNpc = {
 const AMBIENT_NPCS: AmbientNpc[] = [
   {
     id: "amb-1",
-    x: 750,
-    y: 250,
+    x: 1080,
+    y: 520,
     preset: "wanderer",
     lines: ["Sain bain uu!", "First move?", "From Ulaanbaatar."],
   },
   {
     id: "amb-2",
-    x: 260,
-    y: 440,
+    x: 480,
+    y: 820,
     preset: "nomad",
     lines: ["Building from Berlin.", "Shipping today.", "Anyone in Melb?"],
   },
   {
     id: "amb-3",
-    x: 760,
-    y: 440,
+    x: 1280,
+    y: 880,
     preset: "steppe",
     lines: ["Trying shatar.", "Where's the library?", "TS or Rust?"],
   },
   {
     id: "amb-4",
-    x: 410,
-    y: 380,
+    x: 720,
+    y: 760,
     preset: "nomad",
     lines: ["Good morning.", "Nice khural.", "Who's the founder?"],
   },
   {
     id: "amb-5",
-    x: 620,
-    y: 360,
+    x: 1120,
+    y: 740,
     preset: "wanderer",
     lines: ["GM nomads.", "Coffee somewhere?", "Stand-up in 5."],
   },
   {
     id: "amb-6",
-    x: 880,
-    y: 380,
+    x: 1380,
+    y: 480,
     preset: "steppe",
     lines: ["Just shipped.", "Anyone reviewing?", "Cmd-K!"],
+  },
+  {
+    id: "amb-7",
+    x: 560,
+    y: 620,
+    preset: "wanderer",
+    lines: ["New here.", "Where's everyone from?", "Love the steppe."],
+  },
+  {
+    id: "amb-8",
+    x: 980,
+    y: 420,
+    preset: "nomad",
+    lines: ["Designing all night.", "Figma open.", "Ship it."],
+  },
+  {
+    id: "amb-9",
+    x: 760,
+    y: 980,
+    preset: "steppe",
+    lines: ["Heading to Discord.", "Portal's that way.", "GG."],
   },
 ];
 
 type PropKind = "lamp" | "plant" | "tree" | "rock";
 const PROPS: { kind: PropKind; x: number; y: number; scale?: number }[] = [
-  { kind: "tree", x: 50, y: 90 },
-  { kind: "tree", x: 950, y: 90 },
-  { kind: "tree", x: 50, y: 500 },
-  { kind: "tree", x: 950, y: 500 },
-  { kind: "tree", x: 90, y: 200 },
-  { kind: "tree", x: 910, y: 200 },
-  { kind: "tree", x: 90, y: 410 },
-  { kind: "tree", x: 910, y: 410 },
-  { kind: "lamp", x: 420, y: 230 },
-  { kind: "lamp", x: 580, y: 230 },
-  { kind: "lamp", x: 420, y: 360 },
-  { kind: "lamp", x: 580, y: 360 },
-  { kind: "rock", x: 240, y: 160 },
-  { kind: "rock", x: 760, y: 160 },
-  { kind: "rock", x: 260, y: 440 },
-  { kind: "rock", x: 740, y: 440 },
-  { kind: "rock", x: 350, y: 460 },
-  { kind: "rock", x: 650, y: 460 },
-  { kind: "plant", x: 300, y: 110 },
-  { kind: "plant", x: 700, y: 110 },
-  { kind: "plant", x: 300, y: 510 },
-  { kind: "plant", x: 700, y: 510 },
-  { kind: "plant", x: 200, y: 220 },
-  { kind: "plant", x: 800, y: 220 },
-  { kind: "plant", x: 200, y: 380 },
-  { kind: "plant", x: 800, y: 380 },
+  // Trees — perimeter, corners, and clusters frame the steppe.
+  { kind: "tree", x: 70, y: 110 },
+  { kind: "tree", x: 1730, y: 110 },
+  { kind: "tree", x: 70, y: 1110 },
+  { kind: "tree", x: 1730, y: 1110 },
+  { kind: "tree", x: 300, y: 80 },
+  { kind: "tree", x: 640, y: 100 },
+  { kind: "tree", x: 1180, y: 100 },
+  { kind: "tree", x: 1520, y: 80 },
+  { kind: "tree", x: 300, y: 1130 },
+  { kind: "tree", x: 660, y: 1120 },
+  { kind: "tree", x: 1160, y: 1120 },
+  { kind: "tree", x: 1520, y: 1130 },
+  { kind: "tree", x: 90, y: 380 },
+  { kind: "tree", x: 80, y: 660 },
+  { kind: "tree", x: 100, y: 900 },
+  { kind: "tree", x: 1720, y: 380 },
+  { kind: "tree", x: 1730, y: 660 },
+  { kind: "tree", x: 1710, y: 900 },
+  { kind: "tree", x: 210, y: 220 },
+  { kind: "tree", x: 1600, y: 240 },
+  { kind: "tree", x: 230, y: 1000 },
+  { kind: "tree", x: 1580, y: 1000 },
+  { kind: "tree", x: 460, y: 470, scale: 0.9 },
+  { kind: "tree", x: 1340, y: 770, scale: 0.9 },
+  // Rocks scattered across the grass.
+  { kind: "rock", x: 520, y: 320 },
+  { kind: "rock", x: 1300, y: 320 },
+  { kind: "rock", x: 320, y: 820 },
+  { kind: "rock", x: 1500, y: 880 },
+  { kind: "rock", x: 760, y: 560 },
+  { kind: "rock", x: 1080, y: 1000 },
+  { kind: "rock", x: 640, y: 540 },
+  // Plants as soft accents.
+  { kind: "plant", x: 900, y: 200 },
+  { kind: "plant", x: 430, y: 580 },
+  { kind: "plant", x: 1380, y: 600 },
+  { kind: "plant", x: 900, y: 1080 },
+  { kind: "plant", x: 700, y: 320 },
+  { kind: "plant", x: 1180, y: 320 },
+  { kind: "plant", x: 540, y: 940 },
+  { kind: "plant", x: 1260, y: 940 },
+  // Lamps ring the central gathering pad.
+  { kind: "lamp", x: 760, y: 470 },
+  { kind: "lamp", x: 1040, y: 470 },
+  { kind: "lamp", x: 760, y: 730 },
+  { kind: "lamp", x: 1040, y: 730 },
 ];
 
 type Interactable = Omit<InteractableData, "label"> & {
@@ -680,12 +722,12 @@ export class KhuralScene extends Phaser.Scene {
   }
 
   private fitCamera = (size: Phaser.Structs.Size) => {
-    // Zoom so the camera shows a cropped portion of the world and pans to
-    // follow the player, instead of fitting the whole map on screen.
+    // Zoomed out: show a generous slice of the (big) world and pan to follow
+    // the player. Targets ~960px of world width visible on a typical screen.
     const zoom = Phaser.Math.Clamp(
-      Math.max(size.width / (WORLD_W * 0.66), size.height / (WORLD_H * 0.66)),
-      1.3,
-      3.2,
+      Math.max(size.width / 960, size.height / 600),
+      1.1,
+      2.2,
     );
     this.cameras.main.setZoom(zoom);
   };
