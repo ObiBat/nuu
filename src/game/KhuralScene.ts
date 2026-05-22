@@ -39,6 +39,7 @@ import {
   type NinjaPreset,
   type Dir4,
 } from "./ninja";
+import { loadPreset } from "@/lib/ninja-preset";
 
 const WORLD_W = 1800;
 const WORLD_H = 1200;
@@ -376,6 +377,7 @@ export class KhuralScene extends Phaser.Scene {
     gameEvents.addEventListener("presence:identity", this.onPresenceIdentity);
     gameEvents.addEventListener("chat:send", this.onChatSend);
     gameEvents.addEventListener("chat:typing", this.onTyping);
+    gameEvents.addEventListener("preset:update", this.onPresetUpdate);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       gameEvents.removeEventListener("dialogue:close", this.onDialogueClose);
       gameEvents.removeEventListener("world:pause", this.onWorldPause);
@@ -390,6 +392,7 @@ export class KhuralScene extends Phaser.Scene {
       );
       gameEvents.removeEventListener("chat:send", this.onChatSend);
       gameEvents.removeEventListener("chat:typing", this.onTyping);
+      gameEvents.removeEventListener("preset:update", this.onPresetUpdate);
       this.presence?.leave();
       this.presence = null;
       this.unbindFocusGuards();
@@ -997,7 +1000,15 @@ export class KhuralScene extends Phaser.Scene {
 
   private playerIndicator!: Phaser.GameObjects.Container;
 
+  private onPresetUpdate = (e: Event) => {
+    const preset = (e as CustomEvent<NinjaPreset>).detail;
+    this.playerPreset = preset;
+    registerNinjaAnims(this, preset);
+    this.player?.setTexture(ninjaIdleKey(preset), ninjaIdleFrame(this.playerDir4));
+  };
+
   private spawnPlayer() {
+    this.playerPreset = gameEvents.lastPreset ?? loadPreset();
     registerNinjaAnims(this, this.playerPreset);
     this.player = this.add
       .sprite(SPAWN.x, SPAWN.y, ninjaIdleKey(this.playerPreset))

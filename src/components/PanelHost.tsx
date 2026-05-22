@@ -24,6 +24,7 @@ import {
 import { gameEvents } from "@/game/events";
 import { EventsBoard } from "./EventsBoard";
 import { NoticeBoard } from "./NoticeBoard";
+import { CharacterPicker } from "./CharacterPicker";
 import { useSupabaseUser } from "@/lib/supabase/use-user";
 import {
   characterFromProfile,
@@ -390,9 +391,7 @@ function CustomizePanel() {
 
   return (
     <div className="flex flex-col gap-7">
-      <div className="flex items-center justify-center bg-border/30 rounded-xl py-10">
-        <SpritePortrait palette={palette} scale={9} />
-      </div>
+      <CharacterPicker />
 
       <section>
         <h3 className="font-mono text-[10px] uppercase tracking-widest text-muted mb-3">

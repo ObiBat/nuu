@@ -1,5 +1,6 @@
 import type { CharacterPalette } from "@/lib/character";
 import type { PresenceIdentity } from "./presence";
+import type { NinjaPreset } from "@/lib/ninja-preset";
 
 export type DialoguePayload = {
   type: "poi" | "npc";
@@ -10,6 +11,7 @@ class GameEventBus extends EventTarget {
   // Last identity emitted, so the scene can read current state on create()
   // even if the bridge dispatched before the scene attached its listener.
   lastIdentity: PresenceIdentity | null = null;
+  lastPreset: NinjaPreset | null = null;
 
   openDialogue(detail: DialoguePayload) {
     this.dispatchEvent(new CustomEvent("dialogue:open", { detail }));
@@ -40,6 +42,10 @@ class GameEventBus extends EventTarget {
   }
   setTyping(typing: boolean) {
     this.dispatchEvent(new CustomEvent("chat:typing", { detail: typing }));
+  }
+  presetUpdated(preset: NinjaPreset) {
+    this.lastPreset = preset;
+    this.dispatchEvent(new CustomEvent("preset:update", { detail: preset }));
   }
 }
 

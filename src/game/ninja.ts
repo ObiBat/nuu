@@ -1,19 +1,11 @@
 import type Phaser from "phaser";
+import { NINJA_PRESETS, type NinjaPreset } from "@/lib/ninja-preset";
+
+export { NINJA_PRESETS, type NinjaPreset };
 
 // Ninja Adventure (CC0) characters. Walk.png = 64x64, 16px frames, 4 cols
 // (down, up, left, right) x 4 rows (walk frames). Idle.png = 64x16, 4 frames
 // (one per direction). Faceset.png = 38x38 portrait.
-export const NINJA_PRESETS = [
-  "Boy",
-  "Woman",
-  "Villager",
-  "Villager2",
-  "Noble",
-  "OldMan",
-  "Monk",
-  "Hunter",
-] as const;
-export type NinjaPreset = (typeof NINJA_PRESETS)[number];
 
 export type Dir4 = "down" | "up" | "left" | "right";
 const COL: Record<Dir4, number> = { down: 0, up: 1, left: 2, right: 3 };
