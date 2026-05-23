@@ -14,6 +14,8 @@ class GameEventBus extends EventTarget {
   lastPreset: NinjaPreset | null = null;
   // Live touch-joystick vector (-1..1), polled by the scene each frame.
   touchVec = { x: 0, y: 0 };
+  // Live player world position, updated by the scene; read by the minimap.
+  playerPos = { x: 900, y: 696 };
 
   openDialogue(detail: DialoguePayload) {
     this.dispatchEvent(new CustomEvent("dialogue:open", { detail }));

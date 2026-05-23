@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import GameCanvas from "./GameCanvas";
 import { PresenceLayer } from "./PresenceLayer";
 import { TouchControls } from "./TouchControls";
+import { Minimap } from "./Minimap";
 import { Toast } from "./Toast";
 import { gameEvents } from "@/game/events";
 
@@ -139,6 +140,7 @@ function PlayingHud({ onReturn }: { onReturn: () => void }) {
   return (
     <>
       <TouchControls />
+      <Minimap />
       <button
         type="button"
         onClick={onReturn}
@@ -153,14 +155,6 @@ function PlayingHud({ onReturn }: { onReturn: () => void }) {
         </span>
         <span>Back to intro</span>
       </button>
-
-      <div className="absolute top-6 right-6 z-10 flex flex-col gap-3 items-end animate-[fadeIn_0.3s_ease-out]">
-        <div className="bg-background/95 backdrop-blur-sm border border-border rounded-lg px-4 py-3 font-mono text-[11px] space-y-1.5 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.4)]">
-          <HudKey k="WASD" desc="move" />
-          <HudKey k="E" desc="interact" />
-          <HudKey k="⌘K" desc="menu" />
-        </div>
-      </div>
 
       <BottomBar />
     </>
@@ -200,13 +194,3 @@ function BottomBar() {
   );
 }
 
-function HudKey({ k, desc }: { k: string; desc: string }) {
-  return (
-    <div className="flex items-center gap-3 text-foreground">
-      <kbd className="inline-flex items-center justify-center min-w-[2.25rem] h-5 px-2 text-[10px] font-mono border border-border-strong rounded bg-background">
-        {k}
-      </kbd>
-      <span className="text-muted">{desc}</span>
-    </div>
-  );
-}

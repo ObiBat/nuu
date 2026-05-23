@@ -1355,6 +1355,8 @@ export class KhuralScene extends Phaser.Scene {
     const bob = moving ? 0 : Math.sin(time * 0.004) * 0.6;
     this.player.y = this.playerBaseY + bob;
     this.player.setDepth(this.playerBaseY + 1);
+    gameEvents.playerPos.x = this.player.x;
+    gameEvents.playerPos.y = this.playerBaseY;
 
     this.collectTokens();
 
