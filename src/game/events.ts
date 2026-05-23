@@ -12,6 +12,8 @@ class GameEventBus extends EventTarget {
   // even if the bridge dispatched before the scene attached its listener.
   lastIdentity: PresenceIdentity | null = null;
   lastPreset: NinjaPreset | null = null;
+  // Live touch-joystick vector (-1..1), polled by the scene each frame.
+  touchVec = { x: 0, y: 0 };
 
   openDialogue(detail: DialoguePayload) {
     this.dispatchEvent(new CustomEvent("dialogue:open", { detail }));
@@ -46,6 +48,13 @@ class GameEventBus extends EventTarget {
   presetUpdated(preset: NinjaPreset) {
     this.lastPreset = preset;
     this.dispatchEvent(new CustomEvent("preset:update", { detail: preset }));
+  }
+  setTouch(x: number, y: number) {
+    this.touchVec.x = x;
+    this.touchVec.y = y;
+  }
+  touchInteract() {
+    this.dispatchEvent(new Event("touch:interact"));
   }
 }
 

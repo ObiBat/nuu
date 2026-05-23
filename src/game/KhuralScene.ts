@@ -323,6 +323,7 @@ export class KhuralScene extends Phaser.Scene {
   private lastSentFacing: Facing = 1;
   private ambientFaded = false;
   private typingBlocked = false;
+  private touchInteractPending = false;
   private playerBubble: Phaser.GameObjects.Container | null = null;
   private playerBubbleFor = 0;
 
@@ -381,6 +382,7 @@ export class KhuralScene extends Phaser.Scene {
     gameEvents.addEventListener("chat:send", this.onChatSend);
     gameEvents.addEventListener("chat:typing", this.onTyping);
     gameEvents.addEventListener("preset:update", this.onPresetUpdate);
+    gameEvents.addEventListener("touch:interact", this.onTouchInteract);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       gameEvents.removeEventListener("dialogue:close", this.onDialogueClose);
       gameEvents.removeEventListener("world:pause", this.onWorldPause);
@@ -396,6 +398,8 @@ export class KhuralScene extends Phaser.Scene {
       gameEvents.removeEventListener("chat:send", this.onChatSend);
       gameEvents.removeEventListener("chat:typing", this.onTyping);
       gameEvents.removeEventListener("preset:update", this.onPresetUpdate);
+      gameEvents.removeEventListener("touch:interact", this.onTouchInteract);
+      gameEvents.setTouch(0, 0);
       this.presence?.leave();
       this.presence = null;
       this.unbindFocusGuards();
@@ -1034,6 +1038,10 @@ export class KhuralScene extends Phaser.Scene {
 
   private playerIndicator!: Phaser.GameObjects.Container;
 
+  private onTouchInteract = () => {
+    this.touchInteractPending = true;
+  };
+
   private onPresetUpdate = (e: Event) => {
     const preset = (e as CustomEvent<NinjaPreset>).detail;
     this.playerPreset = preset;
@@ -1159,6 +1167,9 @@ export class KhuralScene extends Phaser.Scene {
       if (this.cursors.right?.isDown || this.wasd.D.isDown) dx += 1;
       if (this.cursors.up?.isDown || this.wasd.W.isDown) dy -= 1;
       if (this.cursors.down?.isDown || this.wasd.S.isDown) dy += 1;
+      // On-screen joystick (mobile).
+      dx += gameEvents.touchVec.x;
+      dy += gameEvents.touchVec.y;
     }
 
     const moving = dx !== 0 || dy !== 0;
@@ -1282,14 +1293,17 @@ export class KhuralScene extends Phaser.Scene {
       it.sprite.setScale(it.currentScale);
     });
 
+    const interactPressed =
+      (!this.typingBlocked &&
+        Phaser.Input.Keyboard.JustDown(this.interactKey)) ||
+      this.touchInteractPending;
+    this.touchInteractPending = false;
+
     if (nearest) {
       const target = nearest as Interactable;
       target.prompt.setVisible(true);
       this.currentTarget = target.id;
-      if (
-        !this.typingBlocked &&
-        Phaser.Input.Keyboard.JustDown(this.interactKey)
-      ) {
+      if (interactPressed) {
         this.dialogueOpen = true;
         gameEvents.openDialogue({ type: target.type, id: target.id });
       }

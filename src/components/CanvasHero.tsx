@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import GameCanvas from "./GameCanvas";
 import { PresenceLayer } from "./PresenceLayer";
+import { TouchControls } from "./TouchControls";
 import { gameEvents } from "@/game/events";
 
 type Phase = "intro" | "playing";
@@ -135,6 +136,7 @@ function IntroOverlay({ onEnter }: { onEnter: () => void }) {
 function PlayingHud({ onReturn }: { onReturn: () => void }) {
   return (
     <>
+      <TouchControls />
       <button
         type="button"
         onClick={onReturn}
