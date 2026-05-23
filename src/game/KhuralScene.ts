@@ -858,12 +858,31 @@ export class KhuralScene extends Phaser.Scene {
     g.fillStyle(0x000000, 0.08);
     g.fillRect(0, HARBOUR_H + BEACH_H, WORLD_W, 6);
 
-    // Sand plaza at the central gathering circle.
+    // Sand paths radiating from the plaza to every POI — a focused
+    // hub-and-spoke layout so the world reads as one connected khural.
+    POIS.forEach((poi) => {
+      const ang = Math.atan2(poi.y - cy, poi.x - cx);
+      const len = Math.hypot(poi.x - cx, poi.y - cy);
+      this.add
+        .tileSprite(cx, cy, len, 50, "na-sand")
+        .setOrigin(0, 0.5)
+        .setRotation(ang)
+        .setDepth(-17)
+        .setAlpha(0.95);
+    });
+
+    // Central gathering plaza.
     const plaza = this.add.graphics().setDepth(-15);
-    plaza.fillStyle(0xf0cb8d, 1);
-    plaza.fillCircle(cx, cy, 150);
-    plaza.fillStyle(0xe6bd7a, 0.5);
+    plaza.fillStyle(0x000000, 0.08);
+    plaza.fillCircle(cx, cy + 4, 156);
+    plaza.fillStyle(0xead0a0, 1);
+    plaza.fillCircle(cx, cy, 152);
+    plaza.fillStyle(0xf2dcb4, 1);
     plaza.fillCircle(cx, cy, 120);
+    plaza.lineStyle(3, 0xcdb083, 0.8);
+    plaza.strokeCircle(cx, cy, 152);
+    plaza.lineStyle(2, 0xcdb083, 0.5);
+    plaza.strokeCircle(cx, cy, 96);
 
     // The harbour water is impassable — block the top band.
     this.colliders.push({ x: 0, y: 0, w: WORLD_W, h: HARBOUR_H + 8 });
