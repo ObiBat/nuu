@@ -25,6 +25,7 @@ import { gameEvents } from "@/game/events";
 import { EventsBoard } from "./EventsBoard";
 import { NoticeBoard } from "./NoticeBoard";
 import { CharacterPicker } from "./CharacterPicker";
+import { QuestsPanel } from "./QuestsPanel";
 import { useSupabaseUser } from "@/lib/supabase/use-user";
 import {
   characterFromProfile,
@@ -40,7 +41,8 @@ type PanelKey =
   | "events"
   | "library"
   | "badge"
-  | "customize";
+  | "customize"
+  | "quests";
 
 const PANELS: Record<PanelKey, { title: string; subtitle: string }> = {
   about: { title: "About Nuu", subtitle: "Нүү · your move" },
@@ -49,6 +51,7 @@ const PANELS: Record<PanelKey, { title: string; subtitle: string }> = {
   library: { title: "Library", subtitle: "Read & build" },
   badge: { title: "Your ID", subtitle: "Drag · click to flip" },
   customize: { title: "Customize", subtitle: "Your character" },
+  quests: { title: "First Moves", subtitle: "Your quests" },
 };
 
 const VALID = new Set<PanelKey>([
@@ -58,6 +61,7 @@ const VALID = new Set<PanelKey>([
   "library",
   "badge",
   "customize",
+  "quests",
 ]);
 
 export function PanelHost() {
@@ -140,6 +144,7 @@ export function PanelHost() {
           {panel === "library" && <LibraryPanel />}
           {panel === "badge" && <BadgePanel />}
           {panel === "customize" && <CustomizePanel />}
+          {panel === "quests" && <QuestsPanel />}
         </div>
       </div>
     </div>

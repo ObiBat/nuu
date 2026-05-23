@@ -56,6 +56,9 @@ class GameEventBus extends EventTarget {
   touchInteract() {
     this.dispatchEvent(new Event("touch:interact"));
   }
+  toast(message: string) {
+    this.dispatchEvent(new CustomEvent("toast", { detail: message }));
+  }
 }
 
 export const gameEvents = new GameEventBus();

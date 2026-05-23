@@ -40,6 +40,22 @@ import {
   type Dir4,
 } from "./ninja";
 import { loadPreset } from "@/lib/ninja-preset";
+import {
+  markPoiVisited,
+  markCollectible,
+  getActivity,
+  COLLECTIBLE_TOTAL,
+} from "@/lib/activity";
+
+// Hidden collectible tokens scattered across the khural.
+const COLLECTIBLES: { id: string; x: number; y: number }[] = [
+  { id: "tok-1", x: 160, y: 520 },
+  { id: "tok-2", x: 1640, y: 560 },
+  { id: "tok-3", x: 900, y: 1120 },
+  { id: "tok-4", x: 420, y: 1040 },
+  { id: "tok-5", x: 1400, y: 1020 },
+  { id: "tok-6", x: 1180, y: 470 },
+];
 
 const WORLD_W = 1800;
 const WORLD_H = 1200;
@@ -324,6 +340,7 @@ export class KhuralScene extends Phaser.Scene {
   private ambientFaded = false;
   private typingBlocked = false;
   private touchInteractPending = false;
+  private tokens: { id: string; sprite: Phaser.GameObjects.Image }[] = [];
   private playerBubble: Phaser.GameObjects.Container | null = null;
   private playerBubbleFor = 0;
 
@@ -357,6 +374,7 @@ export class KhuralScene extends Phaser.Scene {
     this.spawnInteractables();
     this.spawnAmbient();
     this.spawnPlayer();
+    this.spawnTokens();
 
     this.cursors = this.input.keyboard!.createCursorKeys();
     // enableCapture=false: letter keys never need preventDefault (they don't
@@ -899,6 +917,7 @@ export class KhuralScene extends Phaser.Scene {
       sprite.on("pointerdown", () => {
         if (this.worldPaused || this.dialogueOpen) return;
         this.dialogueOpen = true;
+        markPoiVisited(item.id);
         gameEvents.openDialogue({ type: item.type, id: item.id });
       });
 
@@ -1048,6 +1067,82 @@ export class KhuralScene extends Phaser.Scene {
     registerNinjaAnims(this, preset);
     this.player?.setTexture(ninjaIdleKey(preset), ninjaIdleFrame(this.playerDir4));
   };
+
+  private spawnTokens() {
+    const TOKEN = [
+      "....GG....",
+      "...GggG...",
+      "..GggggG..",
+      ".GgggggGG.",
+      "GggggggggG",
+      ".GgggggGG.",
+      "..GggggG..",
+      "...GggG...",
+      "....GG....",
+    ];
+    createPixelTexture(this, "token", TOKEN, {
+      ".": null,
+      g: "#f4cf5a",
+      G: "#a8801f",
+    });
+    const collected = new Set(getActivity().collectibles);
+    COLLECTIBLES.forEach((c) => {
+      if (collected.has(c.id)) return;
+      const sprite = this.add
+        .image(c.x, c.y, "token")
+        .setScale(3)
+        .setDepth(c.y);
+      this.tweens.add({
+        targets: sprite,
+        y: c.y - 6,
+        duration: 1100,
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.InOut",
+      });
+      this.tweens.add({
+        targets: sprite,
+        alpha: { from: 1, to: 0.65 },
+        duration: 700,
+        yoyo: true,
+        repeat: -1,
+      });
+      this.tokens.push({ id: c.id, sprite });
+    });
+  }
+
+  private collectTokens() {
+    if (this.tokens.length === 0) return;
+    for (let i = this.tokens.length - 1; i >= 0; i--) {
+      const t = this.tokens[i];
+      const d = Phaser.Math.Distance.Between(
+        this.player.x,
+        this.playerBaseY,
+        t.sprite.x,
+        t.sprite.y,
+      );
+      if (d < 30) {
+        this.tokens.splice(i, 1);
+        if (markCollectible(t.id)) {
+          const n = COLLECTIBLE_TOTAL - this.tokens.length;
+          gameEvents.toast(
+            n >= COLLECTIBLE_TOTAL
+              ? "All tokens found! 🏆"
+              : `Token found · ${n}/${COLLECTIBLE_TOTAL}`,
+          );
+        }
+        this.tweens.add({
+          targets: t.sprite,
+          y: t.sprite.y - 24,
+          alpha: 0,
+          scale: 4,
+          duration: 320,
+          ease: "Sine.Out",
+          onComplete: () => t.sprite.destroy(),
+        });
+      }
+    }
+  }
 
   private spawnPlayer() {
     this.playerPreset = gameEvents.lastPreset ?? loadPreset();
@@ -1199,6 +1294,8 @@ export class KhuralScene extends Phaser.Scene {
     this.player.y = this.playerBaseY + bob;
     this.player.setDepth(this.playerBaseY + 1);
 
+    this.collectTokens();
+
     const AMB_SPEED = 36;
     const AMB_RADIUS = 110;
     this.ambient.forEach((npc) => {
@@ -1305,6 +1402,7 @@ export class KhuralScene extends Phaser.Scene {
       this.currentTarget = target.id;
       if (interactPressed) {
         this.dialogueOpen = true;
+        markPoiVisited(target.id);
         gameEvents.openDialogue({ type: target.type, id: target.id });
       }
     } else {

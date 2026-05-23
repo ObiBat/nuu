@@ -3,12 +3,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createSupabaseServer } from "@/lib/supabase/server";
 import { facesetUrl, NINJA_PRESETS, type NinjaPreset } from "@/lib/ninja-preset";
+import { fetchMemberProgress } from "@/lib/supabase/gamification-server";
+import { MemberProgress } from "@/components/MemberProgress";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 
 export const revalidate = 60;
 
 type MemberProfile = {
+  user_id: string;
   slug: string | null;
   member_number: number;
   display_name: string;
@@ -27,7 +30,7 @@ async function loadProfile(slugOrNumber: string): Promise<MemberProfile | null> 
   const query = supabase
     .from("profiles")
     .select(
-      "slug,member_number,display_name,role,location,bio,character_preset,created_at",
+      "user_id,slug,member_number,display_name,role,location,bio,character_preset,created_at",
     );
 
   const { data } = isNumeric
@@ -68,6 +71,7 @@ export default async function MemberPage({
   const profile = await loadProfile(slug);
   if (!profile) notFound();
 
+  const progress = await fetchMemberProgress(profile.user_id);
   const preset = presetOf(profile.character_preset);
   const numberLabel = `#${String(profile.member_number).padStart(4, "0")}`;
   const joined = new Intl.DateTimeFormat("en-AU", {
@@ -130,6 +134,13 @@ export default async function MemberPage({
                   {profile.bio}
                 </p>
               )}
+
+              <div className="mt-4 pt-6 border-t border-border">
+                <MemberProgress
+                  level={progress.level}
+                  achievements={progress.achievements}
+                />
+              </div>
             </div>
           </div>
         </section>

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import GameCanvas from "./GameCanvas";
 import { PresenceLayer } from "./PresenceLayer";
 import { TouchControls } from "./TouchControls";
+import { Toast } from "./Toast";
 import { gameEvents } from "@/game/events";
 
 type Phase = "intro" | "playing";
@@ -77,6 +78,7 @@ export function CanvasHero() {
       {phase === "playing" && <PlayingHud onReturn={returnToIntro} />}
 
       <PresenceLayer playing={phase === "playing"} />
+      <Toast />
     </section>
   );
 }
@@ -167,8 +169,8 @@ function PlayingHud({ onReturn }: { onReturn: () => void }) {
 
 function BottomBar() {
   const items: { label: string; href: string }[] = [
+    { label: "Quests", href: "#quests" },
     { label: "About", href: "#about" },
-    { label: "Members", href: "#members" },
     { label: "Events", href: "#events" },
     { label: "Library", href: "#library" },
     { label: "You", href: "#customize" },

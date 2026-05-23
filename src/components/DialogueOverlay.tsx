@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { gameEvents, type DialoguePayload } from "@/game/events";
+import { markDiscordJoined } from "@/lib/activity";
 import { members } from "@/lib/content";
 import dialogueData from "../../content/dialogue.json";
 
@@ -185,6 +186,9 @@ export function DialogueOverlay() {
                 href={content.cta.href}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => {
+                  if (content.cta!.href.includes("discord")) markDiscordJoined();
+                }}
                 className="inline-flex items-center h-9 px-4 text-xs font-medium bg-foreground text-background rounded-full hover:bg-accent-subtle transition-colors"
               >
                 {content.cta.label}
