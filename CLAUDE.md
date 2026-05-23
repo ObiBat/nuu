@@ -21,12 +21,13 @@ Founder: **Obi Batbileg** ([obicreative.dev](https://obicreative.dev) · [craeft
 | **v0.3 — Identity** | ✅ shipped (magic-link auth, profiles, /members, customize→DB) |
 | **v0.4 — Presence** | 🚀 deployed (Supabase Realtime: live members walk khural + global chat) — **live-unverified**: needs a 2-session sign-in test |
 | **v0.5 — Content** | ✅ shipped (Events board+RSVP, Notice Board, Library contributions, Newsletter) |
-| **v0.6 — World redesign** | 🚀 deployed (Ninja Adventure CC0 art: NA characters + facesets, Sydney harbour, NA buildings/props). See "v0.6 redesign" below. |
+| **v0.6 — World redesign** | 🚀 deployed (Ninja Adventure CC0 art: NA characters + facesets, distinct NA buildings, Sydney harbour, character pick synced to profile+presence, mobile touch controls). See "v0.6 redesign" below. |
+| **v0.7 — Gamification** | 🚀 deployed (XP/levels/achievements derived from activity, onboarding quests, in-world collectibles). See "v0.7 gamification" below. |
 
 Live: **https://nuu.today** and **https://nuu-gules.vercel.app**.
 Repo: **https://github.com/ObiBat/nuu** (public, MIT).
 Vercel project: `obis-projects-ce997674/nuu` (team `team_t5LhV9zZjfskV6usC9oC4MnQ`) — auto-deploys on push to `main`.
-Supabase project ref: `lbdwwhhrvefcqeulbbla` (Sydney). Migrations `0001`–`0008` applied (profiles, hardening, events+RSVPs+is_admin, notice-board posts, library contributions, newsletter). Tables: `profiles`, `events`, `event_rsvps`, `posts`, `contributions`, `newsletter_subscribers` — all RLS-on, ~0 real rows.
+Supabase project ref: `lbdwwhhrvefcqeulbbla` (Sydney). Migrations `0001`–`0009` applied (profiles, hardening, events+RSVPs+is_admin, notice-board posts, library contributions, newsletter, `profiles.character_preset`). Tables: `profiles`, `events`, `event_rsvps`, `posts`, `contributions`, `newsletter_subscribers` — all RLS-on, ~0 real rows.
 **Admin login email = `admin@nuu.today`** (auto-promoted to `is_admin` on signup by `handle_new_user`).
 
 ---
@@ -282,14 +283,37 @@ in `content/dialogue.json`.
 rectangular bands (no autotile transitions); NA TilesetHouse/Nature are packed
 (future buildings should be assembled from a Tiled map). Founder NPC = NA "Noble".
 
-## Roadmap (post v0.6)
+## v0.7 gamification (deployed 2026-05-23)
 
-- **Presence/profile sync of character pick** — so other members see your look
-- **POI buildings polish** — proper NA structures via a Tiled map; Sydney signpost
-- **v0.7** — atmosphere: day/night, particles, animated water ripples; mobile touch
-- **v0.8** — Achievements, inventory, playable shatar mini-game
+Progression layer. **Public XP/level/achievements are derived server-side**
+from real activity (tamper-proof; no writable XP column) — see
+`src/lib/gamification.ts` (`computeProgress`, `DEFS`, `LEVELS`) +
+`src/lib/supabase/gamification-server.ts` (`fetchMemberProgress` counts
+posts/RSVPs/published/profile-complete). Shown on `/members/[slug]` via
+`MemberProgress.tsx` (level badge + XP bar + achievements grid).
+
+**Onboarding quests** (`QuestsPanel.tsx`, panel `#quests`, in the bottom bar)
+— "First Moves" checklist (choose character, meet Obi, explore all POIs, post,
+RSVP, join Discord) driven by `src/lib/activity.ts` (localStorage: visited
+POIs, met Obi, Discord joined, styled, collectibles) + own post/RSVP counts.
+
+**In-world collectibles** — 6 hidden tokens (`COLLECTIBLES` in `KhuralScene`);
+walk over to collect → `markCollectible` + `gameEvents.toast`. `Toast.tsx`
+shows unlock notifications. Scene also `markPoiVisited` on POI/Obi interact;
+`CharacterPicker` marks `styled`; the Discord CTA marks joined.
+
+**Mobile** (`TouchControls.tsx`): joystick (`gameEvents.touchVec`) + interact
+button (`touch:interact`), shown only on coarse-pointer devices while playing.
+
+## Roadmap (post v0.7)
+
+- **Shatar mini-game** at an Arcade POI (the deferred big game piece)
+- **Atmosphere** — day/night, particles, animated water ripples
+- **Live verification** — sign-in (needs the `admin@nuu.today` mailbox),
+  2-session presence + character-pick-visible-to-others
+- Placeholders before launch: real Discord invite (`discord.gg/nuu`), contact
+  email (`hello@nuu.community`); wire newsletter sending (Resend/Buttondown)
 - **v0.9** — Ecosystem (MAS-NSW, Bayan Mongol, sponsor slots)
-- Carried: finish the **v0.4 2-session presence verification**; wire newsletter sending
 
 ### v0.5 scope (tee-up)
 
