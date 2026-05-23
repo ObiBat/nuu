@@ -11,7 +11,6 @@ import {
 import type { PresenceIdentity } from "@/game/presence";
 import type { CharacterPalette } from "@/lib/character";
 import { savePreset, type NinjaPreset } from "@/lib/ninja-preset";
-import { GameChat } from "./GameChat";
 
 // Resolves the signed-in member's identity and feeds it to the Phaser scene,
 // which owns the realtime channel. Renders the global chat input while playing.
@@ -94,6 +93,8 @@ export function PresenceLayer({ playing }: { playing: boolean }) {
     };
   }, []);
 
-  if (!playing) return null;
-  return <GameChat signedIn={signedIn} />;
+  // Presence (members walking the khural) stays; chat was removed.
+  void playing;
+  void signedIn;
+  return null;
 }
