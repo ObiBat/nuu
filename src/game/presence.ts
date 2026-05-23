@@ -23,6 +23,7 @@ type Callbacks = {
   onRoster: (members: RemoteMember[]) => void;
   onMove: (userId: string, x: number, y: number, facing: Facing) => void;
   onChat: (userId: string, text: string) => void;
+  onEmote: (userId: string, emoji: string) => void;
 };
 
 const CHANNEL = "khural";
@@ -61,6 +62,12 @@ export class KhuralPresence {
       const p = payload as { userId: string; text: string };
       if (p.userId === this.identity.userId) return;
       this.cb.onChat(p.userId, p.text);
+    });
+
+    ch.on("broadcast", { event: "emote" }, ({ payload }) => {
+      const p = payload as { userId: string; emoji: string };
+      if (p.userId === this.identity.userId) return;
+      this.cb.onEmote(p.userId, p.emoji);
     });
 
     ch.subscribe((status) => {
@@ -109,6 +116,14 @@ export class KhuralPresence {
       type: "broadcast",
       event: "chat",
       payload: { userId: this.identity.userId, text },
+    });
+  }
+
+  sendEmote(emoji: string) {
+    void this.channel?.send({
+      type: "broadcast",
+      event: "emote",
+      payload: { userId: this.identity.userId, emoji },
     });
   }
 

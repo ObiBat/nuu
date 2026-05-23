@@ -42,6 +42,13 @@ class GameEventBus extends EventTarget {
   sendChat(text: string) {
     this.dispatchEvent(new CustomEvent("chat:send", { detail: text }));
   }
+  sendEmote(emoji: string) {
+    this.dispatchEvent(new CustomEvent("emote:send", { detail: emoji }));
+  }
+  // Scene → UI feed of messages/emotes (own + remote), for the chat log.
+  logChat(entry: { name: string; text: string; kind: "chat" | "emote" }) {
+    this.dispatchEvent(new CustomEvent("chat:log", { detail: entry }));
+  }
   setTyping(typing: boolean) {
     this.dispatchEvent(new CustomEvent("chat:typing", { detail: typing }));
   }

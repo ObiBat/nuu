@@ -298,6 +298,7 @@ type RemotePlayerState = {
   sprite: Phaser.GameObjects.Sprite;
   nameTag: Phaser.GameObjects.Container;
   preset: NinjaPreset;
+  name: string;
   dir: Dir4;
   x: number;
   baseY: number;
@@ -398,6 +399,7 @@ export class KhuralScene extends Phaser.Scene {
     gameEvents.addEventListener("character:update", this.onCharacterUpdate);
     gameEvents.addEventListener("presence:identity", this.onPresenceIdentity);
     gameEvents.addEventListener("chat:send", this.onChatSend);
+    gameEvents.addEventListener("emote:send", this.onEmoteSend);
     gameEvents.addEventListener("chat:typing", this.onTyping);
     gameEvents.addEventListener("preset:update", this.onPresetUpdate);
     gameEvents.addEventListener("touch:interact", this.onTouchInteract);
@@ -414,6 +416,7 @@ export class KhuralScene extends Phaser.Scene {
         this.onPresenceIdentity,
       );
       gameEvents.removeEventListener("chat:send", this.onChatSend);
+      gameEvents.removeEventListener("emote:send", this.onEmoteSend);
       gameEvents.removeEventListener("chat:typing", this.onTyping);
       gameEvents.removeEventListener("preset:update", this.onPresetUpdate);
       gameEvents.removeEventListener("touch:interact", this.onTouchInteract);
@@ -500,6 +503,7 @@ export class KhuralScene extends Phaser.Scene {
         onRoster: this.onRoster,
         onMove: this.onRemoteMove,
         onChat: this.onRemoteChat,
+        onEmote: this.onRemoteEmote,
       },
     );
     this.presence.join();
@@ -543,6 +547,7 @@ export class KhuralScene extends Phaser.Scene {
       sprite,
       nameTag,
       preset,
+      name: m.displayName,
       dir: "down",
       x: m.x,
       baseY: m.y,
@@ -592,7 +597,19 @@ export class KhuralScene extends Phaser.Scene {
     }
     st.bubble = this.buildSpeechBubble(text, st.x, st.baseY - 44);
     st.bubbleVisibleFor = 5000;
+    gameEvents.logChat({ name: st.name, text, kind: "chat" });
   };
+
+  private onRemoteEmote = (userId: string, emoji: string) => {
+    const st = this.remote.get(userId);
+    if (!st) return;
+    this.showEmote(st.x, st.baseY, emoji);
+    gameEvents.logChat({ name: st.name, text: emoji, kind: "emote" });
+  };
+
+  private ownName(): string {
+    return this.identity?.displayName?.trim() || "You";
+  }
 
   private onChatSend = (e: Event) => {
     const text = (e as CustomEvent<string>).detail?.trim();
@@ -608,7 +625,33 @@ export class KhuralScene extends Phaser.Scene {
       this.playerBaseY - 44,
     );
     this.playerBubbleFor = 5000;
+    gameEvents.logChat({ name: this.ownName(), text, kind: "chat" });
   };
+
+  private onEmoteSend = (e: Event) => {
+    const emoji = (e as CustomEvent<string>).detail;
+    if (!emoji || !this.presence) return;
+    this.presence.sendEmote(emoji);
+    this.showEmote(this.player.x, this.playerBaseY, emoji);
+    gameEvents.logChat({ name: this.ownName(), text: emoji, kind: "emote" });
+  };
+
+  // A big emoji that floats up and fades above a character.
+  private showEmote(x: number, baseY: number, emoji: string) {
+    const t = this.add
+      .text(x, baseY - 52, emoji, { fontSize: "26px" })
+      .setOrigin(0.5)
+      .setDepth(9600);
+    this.tweens.add({
+      targets: t,
+      y: baseY - 92,
+      alpha: { from: 1, to: 0 },
+      scale: { from: 0.6, to: 1.3 },
+      duration: 1400,
+      ease: "Sine.Out",
+      onComplete: () => t.destroy(),
+    });
+  }
 
   private onTyping = (e: Event) => {
     this.typingBlocked = (e as CustomEvent<boolean>).detail;
