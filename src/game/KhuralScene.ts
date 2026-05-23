@@ -86,7 +86,7 @@ const POIS: InteractableData[] = [
     y: 360,
     label: "Customize",
     spriteKey: "na-house",
-    scale: 1.9,
+    scale: 1.8,
   },
   {
     id: "pavilion",
@@ -103,8 +103,8 @@ const POIS: InteractableData[] = [
     x: 300,
     y: 640,
     label: "Library",
-    spriteKey: "na-house",
-    scale: 1.9,
+    spriteKey: "na-house2",
+    scale: 1.5,
   },
   {
     id: "portal",
@@ -340,7 +340,7 @@ export class KhuralScene extends Phaser.Scene {
     this.load.image("na-bush", "/art/ninja/obj/bush.png");
     this.load.image("na-rock", "/art/ninja/obj/rock.png");
     this.load.image("na-house", "/art/ninja/obj/house.png");
-    this.load.image("na-house-blue", "/art/ninja/obj/house_blue.png");
+    this.load.image("na-house2", "/art/ninja/obj/house2.png");
     this.load.image("na-mill", "/art/ninja/obj/mill.png");
     this.load.image("na-boat", "/art/ninja/obj/boat.png");
     this.load.image("na-flag", "/art/ninja/obj/flag.png");
@@ -880,8 +880,8 @@ export class KhuralScene extends Phaser.Scene {
         if (item.id === "pavilion")
           return { key: "na-mill", oy: 0.9, fp: { w: 56, h: 24 } };
         if (item.id === "bookshelf")
-          return { key: "na-house-blue", oy: 0.9, fp: { w: 70, h: 26 } };
-        return { key: "na-house", oy: 0.9, fp: { w: 70, h: 26 } }; // salon
+          return { key: "na-house2", oy: 0.92, fp: { w: 86, h: 30 } };
+        return { key: "na-house", oy: 0.92, fp: { w: 56, h: 22 } }; // salon
       })();
 
       const sprite = this.add

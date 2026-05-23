@@ -89,37 +89,12 @@ def main() -> int:
     nature = raw["TilesetNature"]
     trim(nature.crop((16, 32, 48, 80))).save(os.path.join(ROOT, "obj", "tree.png"))
     trim(nature.crop((16, 160, 48, 192))).save(os.path.join(ROOT, "obj", "bush.png"))
-    import numpy as np
-
     house = raw["TilesetHouse"]
-    # A complete small house (peaked roof + windowed walls + door).
-    house_img = trim(house.crop((0, 174, 47, 221)))
-    house_img.save(os.path.join(ROOT, "obj", "house.png"))
-
-    # Roof palette-swap → distinct buildings. This house has a light/white
-    # roof; tint the light, desaturated pixels in the upper half toward a hue,
-    # preserving shading.
-    def recolour_roof(im: Image.Image, base: tuple[float, float, float]) -> Image.Image:
-        arr = np.array(im).astype(float)
-        r, g, b, al = arr[..., 0], arr[..., 1], arr[..., 2], arr[..., 3]
-        h = arr.shape[0]
-        ys = np.arange(h).reshape(-1, 1)
-        upper = ys < h * 0.58
-        mx = np.max(arr[..., :3], axis=2)
-        mn = np.min(arr[..., :3], axis=2)
-        roof = (al > 60) & (mx > 165) & ((mx - mn) < 45) & upper
-        lum = (r + g + b) / 3.0 / 255.0  # 0..1 shading
-        out = arr.copy()
-        for i, ch in enumerate(base):
-            out[..., i] = np.where(roof, np.clip(lum * ch, 0, 255), arr[..., i])
-        return Image.fromarray(out.astype("uint8"), "RGBA")
-
-    recolour_roof(house_img, (95, 150, 235)).save(
-        os.path.join(ROOT, "obj", "house_blue.png")
-    )
-    recolour_roof(house_img, (235, 150, 90)).save(
-        os.path.join(ROOT, "obj", "house_green.png")
-    )
+    # Complete building sprites — isolated connected components in the sheet
+    # (found via connected-component analysis), so they're clean, not crops
+    # across tiles. Two genuinely different shapes:
+    trim(house.crop((466, 64, 511, 127))).save(os.path.join(ROOT, "obj", "house.png"))  # peaked-roof cottage
+    trim(house.crop((385, 226, 463, 304))).save(os.path.join(ROOT, "obj", "house2.png"))  # larger house
 
     # WaterMill — a distinct harbour-side building.
     mill = Image.open(
@@ -136,7 +111,7 @@ def main() -> int:
         io.BytesIO(fetch("Backgrounds/Animated/Flag/FlagRed16x16.png"))
     ).convert("RGBA")
     trim(flag.crop((0, 0, 16, 16))).save(os.path.join(ROOT, "obj", "flag.png"))
-    for n in ["tree", "bush", "house", "house_blue", "house_green", "mill", "rock", "boat", "flag"]:
+    for n in ["tree", "bush", "house", "house2", "mill", "rock", "boat", "flag"]:
         print(f"obj {n} {Image.open(os.path.join(ROOT, 'obj', n + '.png')).size}")
 
     for ch in CHARACTERS:
